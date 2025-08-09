@@ -1,0 +1,31 @@
+# Gradle
+.gradle/
+build/
+app/build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local configuration
+local.properties
+*.log
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+
+# macOS system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+
+# Keystore files (signing keys)
+*.jks
+*.keystore
+
+# Google Services (Firebase)
+google-services.json
+
+# Gradle wrapper JAR (optional to ignore)
+gradle/wrapper/gradle-wrapper.jar
