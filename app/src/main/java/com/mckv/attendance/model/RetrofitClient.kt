@@ -8,7 +8,7 @@ import com.mckv.attendance.BuildConfig
 
 
 object RetrofitClient {
-    private const val BASE_URL = /*"http://192.168.0.176:5000/"*/ BuildConfig.BASE_URL
+    private const val BASE_URL = BuildConfig.BASE_URL
 
     // 1. Create a logging interceptor
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
