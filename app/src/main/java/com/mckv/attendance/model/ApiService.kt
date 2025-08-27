@@ -16,6 +16,11 @@ interface ApiService {
     @POST("api/schedule/")
     suspend fun addSchedule(@Body schedule: Schedule): retrofit2.Response<Schedule>
 
+    @GET("api/students/{department}")
+    fun getStudentsByDepartment(
+        @Path("department") department: String
+    ): Call<ResponseBody>
+
     @POST("api/auth/login")
     fun loginUser(@Body loginRequest: LoginRequest): Call<ResponseBody>
 
@@ -43,5 +48,8 @@ interface ApiService {
         @Path("department") department: String,
         @Path("subject") subject: String
     ): Call<ResponseBody>
+
+    @POST("/api/attendance/approve-leave")
+    fun approveLeave(@Body body: RequestBody): Call<ResponseBody>
 
 }

@@ -67,5 +67,14 @@ fun TeacherScreen(navController: NavHostController) {
         ) {
             Text("Students Attendance History")
         }
+
+        Button(
+            onClick = { navController.navigate("consider_absence") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text("Consider Absence")
+        }
     }
 }

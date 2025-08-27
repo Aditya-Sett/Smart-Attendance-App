@@ -112,6 +112,10 @@ class MainActivity : ComponentActivity() {
                     composable("take_attendance") {
                         TakeAttendanceScreen(navController)
                     }
+                    composable("consider_absence") {
+                        ConsiderAbsenceScreen(navController)
+                    }
+                    composable("approve_absence") { ApproveAbsenceScreen(navController) }
                     composable("attendance_summary") {
                         //val context = LocalContext.current
                         //val sessionManager = SessionManager(context.applicationContext)
