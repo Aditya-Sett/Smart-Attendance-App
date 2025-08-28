@@ -45,7 +45,7 @@ fun LoginScreen(navController: NavController, roleFromNav: String) {
 
         Button(
             onClick = {
-                val request = LoginRequest(username, password, expectedRole = roleFromNav)
+                val request = LoginRequest(username, password, role = roleFromNav)
                 loginUser(request, context, navController)
             },
             modifier = Modifier.fillMaxWidth()

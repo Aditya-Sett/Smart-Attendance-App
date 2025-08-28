@@ -11,6 +11,10 @@ object SessionManager {
         preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     }
 
+    var authToken: String?
+        get()= preferences.getString("authToken",null)
+        set(value)= preferences.edit().putString("authToken",value).apply()
+
     // Teacher
     var teacherId: String?
         get() = preferences.getString("teacherId", null)
