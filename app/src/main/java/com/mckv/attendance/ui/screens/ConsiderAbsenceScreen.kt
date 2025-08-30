@@ -1,4 +1,4 @@
-package com.mckv.attendance
+package com.mckv.attendance.ui.screens
 
 // Jetpack Compose UI
 import androidx.compose.foundation.layout.*
@@ -28,7 +28,7 @@ import org.json.JSONObject
 
 // Logging
 import android.util.Log
-import com.mckv.attendance.model.RetrofitClient
+import com.mckv.attendance.data.remote.RetrofitClient
 
 
 @Composable

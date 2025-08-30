@@ -1,4 +1,4 @@
-package com.mckv.attendance
+package com.mckv.attendance.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context

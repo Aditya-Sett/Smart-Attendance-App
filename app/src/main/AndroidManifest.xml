@@ -33,7 +33,7 @@
             </intent-filter>
         </activity>
         <receiver
-            android:name=".GeofenceBroadcastReceiver"
+            android:name=".receiver.GeofenceBroadcastReceiver"
             android:exported="true" />
         <provider
             android:name="androidx.core.content.FileProvider"

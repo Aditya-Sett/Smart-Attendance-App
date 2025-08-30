@@ -1,18 +1,17 @@
-package com.mckv.attendance
+package com.mckv.attendance.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.*
-import com.mckv.attendance.model.Schedule
-import com.mckv.attendance.model.RetrofitClient
+import com.mckv.attendance.data.remote.dto.request.ScheduleRequest
+import com.mckv.attendance.data.remote.RetrofitClient
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
-import androidx.compose.ui.unit.dp
+
 //import java.time.LocalTime
 //import java.time.format.DateTimeFormatter
 
@@ -20,8 +19,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ScheduleScreen(department: String,modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
-    var allSchedules by remember { mutableStateOf<List<Schedule>>(emptyList()) }
-    var filteredSchedules by remember { mutableStateOf<List<Schedule>>(emptyList()) }
+    var allSchedules by remember { mutableStateOf<List<ScheduleRequest>>(emptyList()) }
+    var filteredSchedules by remember { mutableStateOf<List<ScheduleRequest>>(emptyList()) }
     var dayFilter by remember { mutableStateOf("") }
     //var showSchedule by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }

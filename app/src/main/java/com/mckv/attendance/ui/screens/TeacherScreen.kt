@@ -1,4 +1,4 @@
-package com.mckv.attendance
+package com.mckv.attendance.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

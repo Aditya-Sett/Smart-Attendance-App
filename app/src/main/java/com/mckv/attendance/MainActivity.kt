@@ -8,9 +8,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,14 +24,21 @@ import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import com.mckv.attendance.model.RetrofitClient
+import com.mckv.attendance.data.remote.RetrofitClient
 import androidx.navigation.compose.*
-import com.mckv.attendance.model.ApiService
+import com.mckv.attendance.data.local.SessionManager
+import com.mckv.attendance.receiver.GeofenceBroadcastReceiver
+import com.mckv.attendance.ui.screens.AddScheduleScreen
+import com.mckv.attendance.ui.screens.ApproveAbsenceScreen
+import com.mckv.attendance.ui.screens.LoginScreen
 import com.mckv.attendance.ui.screens.AttendanceSummaryScreen
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import com.mckv.attendance.SessionManager
+import com.mckv.attendance.ui.screens.ConsiderAbsenceScreen
+import com.mckv.attendance.ui.screens.HomeScreen
+import com.mckv.attendance.ui.screens.MainHomeScreen
+import com.mckv.attendance.ui.screens.ScheduleScreen
 import com.mckv.attendance.ui.screens.StudentsAttendanceSummaryScreen
+import com.mckv.attendance.ui.screens.TakeAttendanceScreen
+import com.mckv.attendance.ui.screens.TeacherScreen
 
 class MainActivity : ComponentActivity() {
 

@@ -1,4 +1,4 @@
-package com.mckv.attendance.model
+package com.mckv.attendance.data.remote.dto.response
 
 data class LoginResponse(
     val success: Boolean,

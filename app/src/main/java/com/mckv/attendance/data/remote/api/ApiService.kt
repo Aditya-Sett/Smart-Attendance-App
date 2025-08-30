@@ -1,9 +1,10 @@
-package com.mckv.attendance.model
+package com.mckv.attendance.data.remote.api
 
+import com.mckv.attendance.data.remote.dto.request.ScheduleRequest
+import com.mckv.attendance.data.remote.dto.response.ScheduleResponse
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.*
-import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -11,10 +12,10 @@ import retrofit2.http.Path
 
 interface ApiService {
     @GET("api/schedule/{department}")
-    suspend fun getScheduleByDepartment(@Path("department") department: String): List<Schedule>
+    suspend fun getScheduleByDepartment(@Path("department") department: String): List<ScheduleRequest>
 
     @POST("api/schedule/")
-    suspend fun addSchedule(@Body schedule: Schedule): retrofit2.Response<Schedule>
+    suspend fun addSchedule(@Body schedule: ScheduleRequest): retrofit2.Response<ScheduleResponse>
 
 //    @POST("api/auth/login")
 //    fun loginUser(@Body loginRequest: LoginRequest): Call<ResponseBody>

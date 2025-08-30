@@ -1,4 +1,4 @@
-package com.mckv.attendance
+package com.mckv.attendance.ui.screens
 
 //Jetpack Compose UI
 import androidx.compose.foundation.layout.*
@@ -24,7 +24,7 @@ import retrofit2.Response
 
 //Logging
 import android.util.Log
-import com.mckv.attendance.model.RetrofitClient
+import com.mckv.attendance.data.remote.RetrofitClient
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 

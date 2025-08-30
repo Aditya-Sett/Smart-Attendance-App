@@ -1,4 +1,4 @@
-package com.mckv.attendance
+package com.mckv.attendance.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

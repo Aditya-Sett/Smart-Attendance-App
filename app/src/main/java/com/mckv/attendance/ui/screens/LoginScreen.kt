@@ -1,6 +1,5 @@
-package com.mckv.attendance
+package com.mckv.attendance.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -9,8 +8,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.mckv.attendance.model.LoginRequest
-import com.mckv.attendance.*
+import com.mckv.attendance.data.remote.dto.request.LoginRequest
+import com.mckv.attendance.utils.loginUser
 
 @Composable
 fun LoginScreen(navController: NavController, roleFromNav: String) {

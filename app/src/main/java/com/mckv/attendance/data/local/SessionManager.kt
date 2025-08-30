@@ -1,4 +1,4 @@
-package com.mckv.attendance
+package com.mckv.attendance.data.local
 
 import android.content.Context
 import android.content.SharedPreferences

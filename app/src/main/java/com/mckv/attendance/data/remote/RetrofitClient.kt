@@ -1,10 +1,12 @@
-package com.mckv.attendance.model
+package com.mckv.attendance.data.remote
 
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import com.mckv.attendance.BuildConfig
+import com.mckv.attendance.data.remote.api.ApiService
+import com.mckv.attendance.data.remote.api.AuthApiService
 
 
 object RetrofitClient {

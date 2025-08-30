@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.mckv.attendance.model.ApiService
+import com.mckv.attendance.data.remote.api.ApiService
 import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.Call
@@ -25,7 +25,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
 import java.io.FileOutputStream
-import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.FileProvider
 import androidx.navigation.NavHostController
 import java.text.SimpleDateFormat

@@ -1,5 +1,6 @@
-package com.mckv.attendance.model
+package com.mckv.attendance.data.remote.api
 
+import com.mckv.attendance.data.remote.dto.request.LoginRequest
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.http.Body

@@ -1,8 +1,6 @@
-package com.mckv.attendance.model
+package com.mckv.attendance.data.remote.dto.response
 
-import com.google.gson.annotations.SerializedName
-
-data class Schedule(
+data class ScheduleResponse(
     val department: String,
     val day: String,
     val time: String,

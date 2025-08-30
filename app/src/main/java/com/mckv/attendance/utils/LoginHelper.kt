@@ -1,10 +1,11 @@
-package com.mckv.attendance
+package com.mckv.attendance.utils
 
 import android.content.Context
 import android.widget.Toast
 import androidx.navigation.NavController
-import com.mckv.attendance.model.LoginRequest
-import com.mckv.attendance.model.RetrofitClient
+import com.mckv.attendance.data.local.SessionManager
+import com.mckv.attendance.data.remote.dto.request.LoginRequest
+import com.mckv.attendance.data.remote.RetrofitClient
 import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.Call
@@ -50,7 +51,7 @@ fun loginUser(
                         if (success) {
 
                             // Save token to SessionManager (for future API calls)
-                            SessionManager.authToken=token
+                            SessionManager.authToken =token
 
                             // Now fetch profile data using the token
                             fetchUserProfile(token,id, context, navController)

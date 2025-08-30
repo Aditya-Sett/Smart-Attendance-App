@@ -1,4 +1,4 @@
-package com.mckv.attendance
+package com.mckv.attendance.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
@@ -17,13 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.mckv.attendance.model.RetrofitClient
-import com.mckv.attendance.model.Schedule
+import com.mckv.attendance.data.remote.RetrofitClient
+import com.mckv.attendance.data.remote.dto.request.ScheduleRequest
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 
 
 @Composable
@@ -61,7 +59,7 @@ fun AddScheduleScreen(navController: NavHostController) {
                 }
                 try {
                     // ✅ Build the schedule object
-                    val schedule = Schedule(department, day, time, subject, room, group)
+                    val schedule = ScheduleRequest(department, day, time, subject, room, group)
                     // ✅ DEBUG: Print the JSON being sent
                     println("📦 Sending Schedule: ${com.google.gson.Gson().toJson(schedule)}")
                     // ✅ Call the API
