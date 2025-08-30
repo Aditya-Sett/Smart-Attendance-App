@@ -3,4 +3,14 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">192.168.0.176</domain>
     </domain-config>
+
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">auth-service-production-02dc.up.railway.app</domain>
+    </domain-config>
+
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>

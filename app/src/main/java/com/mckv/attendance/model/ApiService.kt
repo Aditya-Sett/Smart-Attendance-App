@@ -44,4 +44,11 @@ interface ApiService {
         @Path("subject") subject: String
     ): Call<ResponseBody>
 
+    @POST("/api/attendance/approve-leave")
+    fun approveLeave(@Body body: RequestBody): Call<ResponseBody>
+
+    @GET("api/students/{department}")
+    fun getStudentsByDepartment(
+        @Path("department") department: String
+    ): Call<ResponseBody>
 }
