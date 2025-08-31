@@ -10,16 +10,26 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.mckv.attendance.data.remote.dto.request.LoginRequest
 import com.mckv.attendance.utils.loginUser
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.CircularProgressIndicator
+
 
 @Composable
 fun LoginScreen(navController: NavController, roleFromNav: String) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(16.dp)
     ) {
         Text("Login", style = MaterialTheme.typography.headlineMedium)
@@ -45,11 +55,23 @@ fun LoginScreen(navController: NavController, roleFromNav: String) {
         Button(
             onClick = {
                 val request = LoginRequest(username, password, role = roleFromNav)
-                loginUser(request, context, navController)
+                loading = true
+                loginUser(request, context, navController){
+                    loading = false
+                }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !loading
         ) {
             Text("Login")
+        }
+    }
+    if (loading) {  // ✅ overlay spinner
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
         }
     }
 }

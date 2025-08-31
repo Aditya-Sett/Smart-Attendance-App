@@ -15,7 +15,8 @@ import retrofit2.Response
 fun loginUser(
     request: LoginRequest,
     context: Context,
-    navController: NavController
+    navController: NavController,
+    onComplete: () -> Unit = {}
 ) {
     val call = RetrofitClient.authInstance.loginUser(request)
 
@@ -54,7 +55,7 @@ fun loginUser(
                             SessionManager.authToken =token
 
                             // Now fetch profile data using the token
-                            fetchUserProfile(token,id, context, navController)
+                            fetchUserProfile(token,id, context, navController, onComplete)
 
                             //SessionManager.teacherId = id // ✅ Store ID globally
                             // ✅ Save to SessionManager based on role
@@ -91,6 +92,8 @@ fun loginUser(
                     } catch (e: Exception) {
                         System.out.println("❌ JSON Parsing Error: ${e.message}")
                         Toast.makeText(context, "⚠️ Invalid server response", Toast.LENGTH_LONG).show()
+                    } finally {
+                        onComplete() // ✅ stop loader
                     }
                 } else {
                     Toast.makeText(context, "⚠️ Empty response body", Toast.LENGTH_LONG).show()
@@ -106,12 +109,13 @@ fun loginUser(
         override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
             System.out.println("🚫 Failure: ${t.message}")
             Toast.makeText(context, "🚫 Network error: ${t.message}", Toast.LENGTH_LONG).show()
+            onComplete()
         }
     })
 }
 
 // 👇 New function to fetch user profile
-private fun fetchUserProfile(token: String,id: String, context: Context, navController: NavController) {
+private fun fetchUserProfile(token: String,id: String, context: Context, navController: NavController, onComplete: () -> Unit = {}) {
     val call = RetrofitClient.authInstance.getProfile("Bearer $token")
 
     call.enqueue(object : Callback<ResponseBody> {
@@ -163,6 +167,8 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
                         }
                     } catch (e: Exception) {
                         Toast.makeText(context, "⚠️ Profile data error", Toast.LENGTH_LONG).show()
+                    } finally {
+                        onComplete() // ✅ always stop loader after response
                     }
                 }
             } else {
@@ -172,6 +178,7 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
 
         override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
             Toast.makeText(context, "🚫 Network error", Toast.LENGTH_LONG).show()
+            onComplete()
         }
     })
 }
