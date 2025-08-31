@@ -30,6 +30,10 @@ import org.json.JSONObject
 import android.util.Log
 import com.mckv.attendance.data.remote.RetrofitClient
 
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+
+
 
 @Composable
 fun ConsiderAbsenceScreen(navController: NavHostController) {
@@ -37,7 +41,7 @@ fun ConsiderAbsenceScreen(navController: NavHostController) {
     var students by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
     var selectedStudents by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp)) {
         OutlinedTextField(
             value = department,
             onValueChange = { department = it },

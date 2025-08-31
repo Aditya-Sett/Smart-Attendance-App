@@ -40,6 +40,8 @@ fun StudentsAttendanceSummaryScreen(apiService: ApiService, navController: NavHo
 
     Column(Modifier
         .fillMaxSize()
+        .statusBarsPadding()
+        .navigationBarsPadding()
         .padding(16.dp)) {
 
         Text("Students Attendance History", fontWeight = FontWeight.Bold)

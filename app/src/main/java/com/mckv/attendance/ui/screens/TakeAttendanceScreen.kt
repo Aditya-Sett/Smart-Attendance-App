@@ -42,6 +42,8 @@ fun TakeAttendanceScreen(navController: NavHostController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.Top
     ) {

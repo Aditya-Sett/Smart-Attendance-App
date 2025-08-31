@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import com.mckv.attendance.data.remote.dto.request.ScheduleRequest
 import com.mckv.attendance.data.remote.RetrofitClient
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 //import java.time.LocalTime
@@ -45,7 +46,11 @@ fun ScheduleScreen(department: String,modifier: Modifier = Modifier) {
     } else if (error != null) {
         Text("Error: $error")
     } else {
-        Column {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(16.dp)) {
             OutlinedTextField(
                 value = dayFilter,
                 onValueChange = {

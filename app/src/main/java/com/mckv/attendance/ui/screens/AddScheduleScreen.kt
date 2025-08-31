@@ -22,6 +22,8 @@ import com.mckv.attendance.data.remote.dto.request.ScheduleRequest
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 
 @Composable
@@ -38,6 +40,8 @@ fun AddScheduleScreen(navController: NavHostController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(16.dp)
     ) {
         OutlinedTextField(value = department, onValueChange = { department = it }, label = { Text("Department") })

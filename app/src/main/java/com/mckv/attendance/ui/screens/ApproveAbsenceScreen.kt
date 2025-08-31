@@ -32,6 +32,11 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 
+//For status and navigation bar padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+
+
 @Composable
 fun ApproveAbsenceScreen(navController: NavHostController) {
     val savedStateHandle = navController.previousBackStackEntry?.savedStateHandle
@@ -46,8 +51,14 @@ fun ApproveAbsenceScreen(navController: NavHostController) {
     val context = LocalContext.current
 
     Column(
-        Modifier.fillMaxSize().padding(16.dp),
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(16.dp),
+
         verticalArrangement = Arrangement.spacedBy(8.dp)
+
     ) {
         // Department (Read-only)
         /*OutlinedTextField(

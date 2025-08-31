@@ -15,6 +15,9 @@ import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+
 
 
 
@@ -63,7 +66,7 @@ fun AttendanceSummaryScreen(
         })
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp)) {
         Text("Attendance Summary", fontWeight = FontWeight.Bold, fontSize = 20.sp)
 
         when {
