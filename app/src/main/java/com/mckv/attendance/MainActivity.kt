@@ -8,9 +8,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,20 +24,29 @@ import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import com.mckv.attendance.model.RetrofitClient
+import com.mckv.attendance.data.remote.RetrofitClient
 import androidx.navigation.compose.*
-import com.mckv.attendance.model.ApiService
+import com.mckv.attendance.data.local.SessionManager
+import com.mckv.attendance.receiver.GeofenceBroadcastReceiver
+import com.mckv.attendance.ui.screens.AddScheduleScreen
+import com.mckv.attendance.ui.screens.ApproveAbsenceScreen
+import com.mckv.attendance.ui.screens.LoginScreen
 import com.mckv.attendance.ui.screens.AttendanceSummaryScreen
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import com.mckv.attendance.SessionManager
+import com.mckv.attendance.ui.screens.ConsiderAbsenceScreen
+import com.mckv.attendance.ui.screens.HomeScreen
+import com.mckv.attendance.ui.screens.MainHomeScreen
+import com.mckv.attendance.ui.screens.ScheduleScreen
 import com.mckv.attendance.ui.screens.StudentsAttendanceSummaryScreen
+import com.mckv.attendance.ui.screens.TakeAttendanceScreen
+import com.mckv.attendance.ui.screens.TeacherScreen
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var geofencingClient: GeofencingClient
     private lateinit var geofencePendingIntent: PendingIntent
+
+
 
     // Declare launcher at class level
     private val     requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -52,11 +58,18 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    //ENTRY POINT OF MAIN ACTIVITY
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //SESSION MANAGER IS APP'S MEMORY FOR LOGIN/SESSION DATA
         SessionManager.init(applicationContext) // ✅ Initialize session storage
+
+        //enableEdgeToEdge() IS A ANDROID API CALL THAT MAKES APP AREA EXTENDS SYSTEM BAR'S AREA (STATUS BAR AT TOP, NAVIGATION BAR AT BOTTOM)
         enableEdgeToEdge()
 
+        // 1) FUSED LOCATION PROVIDER IS  A PART OF GOOGLE PLAY SERVICE (com.google.android.gms.location)
+        // 2) COMBINE MULTIPLE LOCATION SOURCE:  GPS (high accuracy), WIFI, CELL TOWER, BLUETOOTH BEACON
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         geofencingClient = LocationServices.getGeofencingClient(this)
@@ -78,6 +91,7 @@ class MainActivity : ComponentActivity() {
                 Log.e("API_ERROR", "Failed to fetch schedule: ${e.message}")
             }
         }
+
 
 
         setContent {
@@ -140,11 +154,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestLocationPermission() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
+        Toast.makeText(this,"RequestLocationPermission Hit",Toast.LENGTH_LONG).show()
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissionLauncher.launch(
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -157,11 +169,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    //GET CURRENT LOCATION
     private fun getCurrentLocation() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
         ) {
             // Permission was removed or denied — don’t proceed
             Toast.makeText(this, "Permission not granted", Toast.LENGTH_SHORT).show()
@@ -169,7 +179,7 @@ class MainActivity : ComponentActivity() {
         }
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             location?.let {
-                Toast.makeText(this, "Lat: it.latitude, Lon:{it.longitude}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Lat: ${it.latitude}\n Lon: ${it.longitude}", Toast.LENGTH_LONG).show()
             }
             addGeofence()
         }
