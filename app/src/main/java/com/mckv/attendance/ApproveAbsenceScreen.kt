@@ -28,6 +28,9 @@ import com.mckv.attendance.model.RetrofitClient
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
+//Toast message
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun ApproveAbsenceScreen(navController: NavHostController) {
@@ -39,6 +42,8 @@ fun ApproveAbsenceScreen(navController: NavHostController) {
     var fromDate by remember { mutableStateOf("") }
     var toDate by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
 
     Column(
         Modifier.fillMaxSize().padding(16.dp),
@@ -109,14 +114,17 @@ fun ApproveAbsenceScreen(navController: NavHostController) {
                     override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
                         if (response.isSuccessful) {
                             Log.d("API", "Leave approved successfully")
+                            Toast.makeText(context, "Leave approved successfully ✅", Toast.LENGTH_LONG).show()
                             navController.popBackStack()
                         } else {
                             Log.e("API", "Approval failed: ${response.code()}")
+                            Toast.makeText(context, "Approval failed ❌\nNo classes found in that range", Toast.LENGTH_LONG).show()
                         }
                     }
 
                     override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
                         Log.e("API", "Error approving leave", t)
+                        Toast.makeText(context, "Network error ⚠️", Toast.LENGTH_LONG).show()
                     }
                 })
             },
