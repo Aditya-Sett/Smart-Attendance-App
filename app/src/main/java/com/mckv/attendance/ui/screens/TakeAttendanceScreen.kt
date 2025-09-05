@@ -29,6 +29,8 @@ import retrofit2.Callback
 import retrofit2.Response
 import org.json.JSONObject
 
+import com.mckv.attendance.utils.getCurrentLocation
+
 
 @Composable
 fun TakeAttendanceScreen(navController: NavHostController) {
@@ -76,31 +78,37 @@ fun TakeAttendanceScreen(navController: NavHostController) {
                     return@Button
                 }
 
-                val json = JSONObject().apply {
-                    put("teacherId", teacherId)
-                    put("department", department)
-                    put("subject", subject)
+                getCurrentLocation(context){lat, lon ->
+                    val json = JSONObject().apply {
+                        put("teacherId", teacherId)
+                        put("department", department)
+                        put("subject", subject)
+                        put("latitude", lat)
+                        put("longitude", lon)
+                    }
+
+                    val requestBody = json.toString()
+                        .toRequestBody("application/json".toMediaTypeOrNull())
+
+                    val call = RetrofitClient.instance.generateCode(requestBody)
+
+                    call.enqueue(object : Callback<ResponseBody> {
+                        override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                            if (response.isSuccessful) {
+                                val result = response.body()?.string()
+                                responseMessage = result
+                            } else {
+                                responseMessage = "⚠️ Server Error: ${response.errorBody()?.string()}"
+                            }
+                        }
+
+                        override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                            responseMessage = "🚫 Network error: ${t.message}"
+                        }
+                    })
                 }
 
-                val requestBody = json.toString()
-                    .toRequestBody("application/json".toMediaTypeOrNull())
 
-                val call = RetrofitClient.instance.generateCode(requestBody)
-
-                call.enqueue(object : Callback<ResponseBody> {
-                    override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                        if (response.isSuccessful) {
-                            val result = response.body()?.string()
-                            responseMessage = result
-                        } else {
-                            responseMessage = "⚠️ Server Error: ${response.errorBody()?.string()}"
-                        }
-                    }
-
-                    override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                        responseMessage = "🚫 Network error: ${t.message}"
-                    }
-                })
             },
             modifier = Modifier.fillMaxWidth()
         ) {
