@@ -21,6 +21,8 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
+import com.mckv.attendance.utils.getCurrentLocation
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavHostController) {
@@ -40,7 +42,49 @@ fun HomeScreen(navController: NavHostController) {
             Log.d("DEBUG", "Checking for code...")
             Log.d("DEBUG", "📡 Sending request to getLatestCode($department)")
 
-            val call = RetrofitClient.instance.getLatestCode(department)
+            getCurrentLocation(context) {lat, lon ->
+                val json = JSONObject().apply {
+                    put("department", department)
+                    put("studentLat", lat)
+                    put("studentLon", lon)
+                }
+                val requestBody = json.toString()
+                    .toRequestBody("application/json".toMediaTypeOrNull())
+
+                val call = RetrofitClient.instance.getLatestCode(requestBody)
+                call.enqueue(object : Callback<ResponseBody> {
+                    override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                        Log.d("DEBUG", "✅ Received response")
+                        if (response.isSuccessful) {
+                            val bodyString = response.body()?.string() ?: ""
+                            Log.d("DEBUG", "Raw body: $bodyString")
+
+                            if (bodyString.isNotBlank()) {
+                                try {
+                                    val result = JSONObject(bodyString)
+                                    val code = result.optString("code")
+                                    val active = result.optBoolean("active")
+
+                                    if (active && code.isNotBlank() && code != SessionManager.lastCodeSubmitted) {
+                                        activeCode = code
+                                        showDialog = true
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("DEBUG", "❌ JSON parsing failed: ${e.message}")
+                                }
+                            }
+                        } else {
+                            Log.e("DEBUG", "❌ Unsuccessful response: ${response.code()}")
+                        }
+                    }
+
+                    override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                        Log.e("DEBUG", "🚫 Network error: ${t.message}")
+                    }
+                })
+            }
+
+            /*val call = RetrofitClient.instance.getLatestCode(department)
             call.enqueue(object : Callback<ResponseBody> {
                 override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
                     Log.d("DEBUG", "✅ Received response")
@@ -75,7 +119,7 @@ fun HomeScreen(navController: NavHostController) {
                 override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
                     Log.e("DEBUG", "🚫 Network error: ${t.message}")
                 }
-            })
+            })*/
 
             delay(2000) // Check every 2s
         }
@@ -93,53 +137,59 @@ fun HomeScreen(navController: NavHostController) {
                     }
                     Log.d("DEBUG", "📤 Submitting studentId=$studentId, department=$department, code=$inputCode")
 
-                    val json = JSONObject().apply {
-                        put("studentId", studentId)
-                        put("code", inputCode)
-                        put("department", department)
+                    getCurrentLocation(context) {lat, lon ->
+                        val json = JSONObject().apply {
+                            put("studentId", studentId)
+                            put("department", department)
+                            put("code", inputCode)
+                            put("studentLat", lat)
+                            put("studentLon", lon)
+                        }
+
+                        val requestBody = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
+
+                        RetrofitClient.instance.submitAttendanceCode(requestBody)
+                            .enqueue(object : Callback<ResponseBody> {
+                                override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                                    Log.d("DEBUG", "🔄 Submit response code: ${response.code()}")
+                                    if (response.isSuccessful) {
+                                        val bodyString = response.body()?.string() ?: ""
+                                        Log.d("DEBUG", "Raw response from backend: $bodyString")
+
+                                        try {
+                                            val result = JSONObject(bodyString)
+                                            val success = result.optBoolean("success")
+                                            Log.d("DEBUG", "✅ Parsed success: $success")
+
+                                            if (success) {
+                                                Log.d("DEBUG", "🔑 activeCode = $activeCode")
+                                                SessionManager.lastCodeSubmitted = activeCode
+                                                Log.d("DEBUG", "💾 Saved lastCodeSubmitted: $activeCode")
+                                                responseMessage = "✅ Attendance marked"
+                                            } else {
+                                                responseMessage = "❌ Code invalid"
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e("DEBUG", "❌ JSON parse error: ${e.message}")
+                                            responseMessage = "⚠️ Response error"
+                                        }
+                                    } else {
+                                        Log.e("DEBUG", "❌ Submission failed with code: ${response.code()}")
+                                        responseMessage = "❌ Code invalid or expired"
+                                    }
+                                    showDialog = false
+
+                                }
+
+                                override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                                    Log.e("DEBUG", "🚫 Network error on submit: ${t.message}")
+                                    responseMessage = "🚫 Network error: ${t.message}"
+                                    showDialog = false
+                                }
+                            })
                     }
 
-                    val requestBody = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
 
-                    RetrofitClient.instance.submitAttendanceCode(requestBody)
-                        .enqueue(object : Callback<ResponseBody> {
-                            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                                Log.d("DEBUG", "🔄 Submit response code: ${response.code()}")
-                                if (response.isSuccessful) {
-                                    val bodyString = response.body()?.string() ?: ""
-                                    Log.d("DEBUG", "Raw response from backend: $bodyString")
-
-                                    try {
-                                        val result = JSONObject(bodyString)
-                                        val success = result.optBoolean("success")
-                                        Log.d("DEBUG", "✅ Parsed success: $success")
-
-                                        if (success) {
-                                            Log.d("DEBUG", "🔑 activeCode = $activeCode")
-                                            SessionManager.lastCodeSubmitted = activeCode
-                                            Log.d("DEBUG", "💾 Saved lastCodeSubmitted: $activeCode")
-                                            responseMessage = "✅ Attendance marked"
-                                        } else {
-                                            responseMessage = "❌ Code invalid"
-                                        }
-                                    } catch (e: Exception) {
-                                        Log.e("DEBUG", "❌ JSON parse error: ${e.message}")
-                                        responseMessage = "⚠️ Response error"
-                                    }
-                                } else {
-                                    Log.e("DEBUG", "❌ Submission failed with code: ${response.code()}")
-                                    responseMessage = "❌ Code invalid or expired"
-                                }
-                                showDialog = false
-
-                            }
-
-                            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                                Log.e("DEBUG", "🚫 Network error on submit: ${t.message}")
-                                responseMessage = "🚫 Network error: ${t.message}"
-                                showDialog = false
-                            }
-                        })
                 }) {
                     Text("Submit")
                 }
