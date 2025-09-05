@@ -23,9 +23,9 @@ interface ApiService {
     @POST("api/attendance/generate")
     fun generateCode(@Body requestBody: RequestBody): Call<ResponseBody>
 
-    @GET("api/attendance/latest/{department}")
+    @POST("api/attendance/latest")
     fun getLatestCode(
-        @Path("department") department: String
+        @Body body: RequestBody
     ): Call<ResponseBody>
 
     @POST("api/attendance/submit")
