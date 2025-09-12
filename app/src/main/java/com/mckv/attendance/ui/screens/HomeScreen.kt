@@ -2,6 +2,7 @@ package com.mckv.attendance.ui.screens
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +24,18 @@ import retrofit2.Response
 
 import com.mckv.attendance.utils.getCurrentLocation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.OutlinedButton
+import kotlinx.coroutines.launch
+
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Color
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavHostController) {
@@ -33,6 +46,18 @@ fun HomeScreen(navController: NavHostController) {
     var showDialog by remember { mutableStateOf(false) }
     var inputCode by remember { mutableStateOf("") }
     var responseMessage by remember { mutableStateOf<String?>(null) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(responseMessage) {
+        responseMessage?.let {
+            scope.launch {
+                snackbarHostState.showSnackbar(it)
+            }
+            responseMessage = null // reset after showing
+        }
+    }
 
     // Auto-check for active code every 10 seconds
     Log.d("DEBUG", "🧠 department in SessionManager: ${SessionManager.department}")
@@ -126,9 +151,9 @@ fun HomeScreen(navController: NavHostController) {
     }
 
     // Dialog for submitting code
-    if (showDialog && activeCode != null) {
+    if (showDialog) {
         AlertDialog(
-            onDismissRequest = {},
+            onDismissRequest = { showDialog = false },
             confirmButton = {
                 Button(onClick = {
                     if (inputCode.length != 4) {
@@ -189,37 +214,75 @@ fun HomeScreen(navController: NavHostController) {
                             })
                     }
 
-
                 }) {
                     Text("Submit")
                 }
             },
             dismissButton = {
-                Button(onClick = {
-                    showDialog = false
-                }) {
+                OutlinedButton(onClick = { showDialog = false }) {
                     Text("Cancel")
                 }
             },
-            title = { Text("📥 Enter Attendance Code") },
+            title = { Text("Enter Attendance Code") },
             text = {
                 Column {
-                    Text("An active attendance code is available for your class.")
+                    Text("Enter the 4-digit attendance code shared by your teacher.")
+                    Spacer(modifier = Modifier.height(10.dp))
                     OutlinedTextField(
                         value = inputCode,
-                        onValueChange = { inputCode = it },
-                        label = { Text("Attendance Code") }
+                        onValueChange = { if (it.length <= 4) inputCode = it },
+                        label = { Text("Attendance Code") },
+                        singleLine = true
                     )
                 }
-            }
+            },
+            shape = MaterialTheme.shapes.large
         )
     }
 
     // Main content
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(title = { Text("Smart Attendance App") })
-        }
+            Column {
+                TopAppBar(
+                    title = { Text("Smart Attendance") },
+                    navigationIcon = {
+                        IconButton(onClick = { /* TODO: open drawer */ }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { /* Profile */ }) {
+                            Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xFF1976D2), // bluish shade
+                        titleContentColor = Color.White,
+                        navigationIconContentColor = Color.White,
+                        actionIconContentColor = Color.White
+                    )
+                )
+
+                // Student info bar under AppBar
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF2196F3)) // lighter blue
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Welcome, $studentId",
+                        style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
+                    )
+                    Text(
+                        text = "Department: $department",
+                        style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
+                    )
+                }
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -227,27 +290,38 @@ fun HomeScreen(navController: NavHostController) {
                 .padding(innerPadding),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Button(onClick = { navController.navigate("schedule") }) {
-                    Text("📅 Get Schedule")
-                }
-                Spacer(modifier = Modifier.height(16.dp)) // optional spacing between buttons
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                /*Text(
+                    text = "Welcome, $studentId",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Department: $department",
+                    style = MaterialTheme.typography.bodyMedium
+                )*/
+
                 Button(
-                    onClick = {
-                        navController.navigate("attendance_summary")
-                    },
+                    onClick = { navController.navigate("schedule") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 32.dp)
                 ) {
-                    Text(text = "📊 Attendance History")
+                    Text("📅 View Schedule")
                 }
 
-                responseMessage?.let {
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(it)
+                Button(
+                    onClick = { navController.navigate("attendance_summary") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp)
+                ) {
+                    Text("📊 Attendance History")
                 }
             }
         }
     }
+
 }
