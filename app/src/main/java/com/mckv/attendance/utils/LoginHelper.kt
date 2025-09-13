@@ -104,6 +104,8 @@ fun loginUser(
                 System.out.println("❌ Error Body: $errorBody")
                 Toast.makeText(context, "⚠️ Server Error: $errorBody", Toast.LENGTH_LONG).show()
             }
+
+            onComplete()
         }
 
         override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
