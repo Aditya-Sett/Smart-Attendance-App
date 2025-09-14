@@ -15,6 +15,11 @@ object SessionManager {
         get()= preferences.getString("authToken",null)
         set(value)= preferences.edit().putString("authToken",value).apply()
 
+    // Admin
+    var adminId: String?
+        get() = preferences.getString("adminId", null)
+        set(value) = preferences.edit().putString("adminId", value).apply()
+
     // Teacher
     var teacherId: String?
         get() = preferences.getString("teacherId", null)
