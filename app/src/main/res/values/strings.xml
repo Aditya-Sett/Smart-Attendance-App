@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">Smart Attendance</string>
+    <string name="app_logo">App logo</string>
+    <string name="welcome_back">Welcome</string>
+    <string name="sign_in_to_continue">sign in to continue</string>
+    <string name="login">Login</string>
+    <string name="username_or_email">username</string>
+    <string name="password">password</string>
+    <string name="hide_password">hide password</string>
+    <string name="show_password">show password</string>
+    <string name="forgot_password">forget password</string>
+    <string name="sign_in">Sign in</string>
+    <string name="dont_have_an_account">don\'t have an account</string>
+    <string name="sign_up">SignUp</string>
 </resources>
