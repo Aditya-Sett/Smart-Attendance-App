@@ -41,7 +41,7 @@ fun MainHomeScreen(navController: NavHostController) {
 
         LoginBox("Administrator Login", color = Color(0xFFEF6C00)) {
             // Future: Navigate to admin screen
-            // navController.navigate("login_screen/ROLE_ADMIN")
+             navController.navigate("login_screen/ADMIN")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
