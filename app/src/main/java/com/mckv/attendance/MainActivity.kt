@@ -39,6 +39,9 @@ import com.mckv.attendance.ui.screens.ScheduleScreen
 import com.mckv.attendance.ui.screens.StudentsAttendanceSummaryScreen
 import com.mckv.attendance.ui.screens.TakeAttendanceScreen
 import com.mckv.attendance.ui.screens.TeacherScreen
+import com.mckv.attendance.ui.screens.AdminDashboard
+import com.mckv.attendance.ui.screens.ClassroomListScreen
+import com.mckv.attendance.ui.screens.AddClassroomScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -119,6 +122,15 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("teacher") {
                         TeacherScreen(navController)
+                    }
+                    composable("admin_dashboard") {
+                        AdminDashboard(navController)
+                    }
+                    composable("classroomList") {
+                        ClassroomListScreen(navController)
+                    }
+                    composable("addClassroom") {
+                        AddClassroomScreen(navController)
                     }
                     composable("add_schedule") {
                         AddScheduleScreen(navController)
