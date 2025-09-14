@@ -149,6 +149,9 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
                                     "ROLE_TEACHER" -> {
                                         SessionManager.teacherId = studentId
                                     }
+                                    "ADMIN" -> {
+                                        SessionManager.adminId = studentId
+                                    }
                                     else -> {
                                         Toast.makeText(context, "⚠ Unknown role", Toast.LENGTH_LONG).show()
                                     }
@@ -158,7 +161,7 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
                                 when (role) {
                                     "ROLE_STUDENT" -> navController.navigate("home")
                                     "ROLE_TEACHER" -> navController.navigate("teacher")
-                                    "ROLE_ADMIN" -> navController.navigate("admin_dashboard")
+                                    "ADMIN" -> navController.navigate("admin_dashboard")
                                     else -> Toast.makeText(context, "⚠ Unknown role", Toast.LENGTH_LONG).show()
                                 }
                             }
