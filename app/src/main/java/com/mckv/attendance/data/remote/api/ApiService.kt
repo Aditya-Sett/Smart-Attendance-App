@@ -9,8 +9,16 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import com.mckv.attendance.data.remote.dto.request.ClassroomRequest
+import com.mckv.attendance.data.remote.dto.response.ClassroomResponse
 
 interface ApiService {
+    @GET("api/classrooms/details")
+    suspend fun getClassrooms(): Response<List<ClassroomResponse>>
+
+    @POST("api/classrooms/create")
+    suspend fun addClassroom(@Body classroom: ClassroomRequest): Response<ResponseBody>
+
     @GET("api/schedule/{department}")
     suspend fun getScheduleByDepartment(@Path("department") department: String): List<ScheduleRequest>
 
