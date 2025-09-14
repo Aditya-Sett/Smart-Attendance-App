@@ -47,28 +47,64 @@ fun ClassroomListScreen(navController: NavHostController) {
             }
         }
     ) { padding ->
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when {
+            isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        } else if (classrooms.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No classrooms found")
+            classrooms.isEmpty() -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No classrooms found")
+                }
             }
-        } else {
-            LazyColumn(modifier = Modifier.padding(padding)) {
-                items(classrooms) { classroom ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        elevation = CardDefaults.cardElevation(4.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Room: ${classroom.number}", style = MaterialTheme.typography.titleMedium)
-                            Text("Corners: ${classroom.coordinates.size}")
-                        }
+            else -> {
+                LazyColumn(modifier = Modifier.padding(padding)) {
+                    items(classrooms) { classroom ->
+                        ClassroomCard(classroom)
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ClassroomCard(classroom: ClassroomResponse) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Room: ${classroom.number}",
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Count number of coordinates (corners)
+            val corners = classroom.polygon.coordinates.firstOrNull()?.size ?: 0
+            Text(
+                text = "Corners: $corners points",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Expand / Collapse button
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(if (expanded) "Hide Coordinates" else "View Coordinates")
+            }
+
+            if (expanded) {
+                classroom.polygon.coordinates.firstOrNull()?.forEachIndexed { index, coord ->
+                    Text("Corner ${index + 1}: ${coord[0]}, ${coord[1]}")
                 }
             }
         }

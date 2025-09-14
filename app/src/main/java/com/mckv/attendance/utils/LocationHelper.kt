@@ -2,40 +2,31 @@ package com.mckv.attendance.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.location.Location
-import com.google.android.gms.location.LocationServices
+import android.os.Looper
+import com.google.android.gms.location.*
 
 @SuppressLint("MissingPermission")
 fun getCurrentLocation(context: Context, onLocationFetched: (Double, Double) -> Unit) {
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
-    try {
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location: Location? ->
-                if (location != null) {
-                    onLocationFetched(location.latitude, location.longitude)
-                } else {
-                    // fallback: request a new location
-                    val request = com.google.android.gms.location.LocationRequest.Builder(
-                        com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, 1000
-                    ).setMaxUpdates(1).build()
+    val request = LocationRequest.Builder(
+        Priority.PRIORITY_HIGH_ACCURACY, 2000L // every 2 sec if needed
+    )
+        .setWaitForAccurateLocation(true) // force best accuracy
+        .setMaxUpdates(1) // only one fix
+        .build()
 
-                    fusedLocationClient.requestLocationUpdates(
-                        request,
-                        object : com.google.android.gms.location.LocationCallback() {
-                            override fun onLocationResult(result: com.google.android.gms.location.LocationResult) {
-                                fusedLocationClient.removeLocationUpdates(this)
-                                val loc = result.lastLocation
-                                if (loc != null) {
-                                    onLocationFetched(loc.latitude, loc.longitude)
-                                }
-                            }
-                        },
-                        context.mainLooper
-                    )
+    fusedLocationClient.requestLocationUpdates(
+        request,
+        object : LocationCallback() {
+            override fun onLocationResult(result: LocationResult) {
+                fusedLocationClient.removeLocationUpdates(this)
+                val loc = result.lastLocation
+                if (loc != null) {
+                    onLocationFetched(loc.latitude, loc.longitude)
                 }
             }
-    } catch (e: SecurityException) {
-        e.printStackTrace()
-    }
+        },
+        Looper.getMainLooper()
+    )
 }

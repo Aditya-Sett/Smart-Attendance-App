@@ -72,6 +72,7 @@ fun TakeAttendanceScreen(navController: NavHostController) {
 
     var department by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
+    var classroom by remember { mutableStateOf("") }
     var responseMessage by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
@@ -98,7 +99,6 @@ fun TakeAttendanceScreen(navController: NavHostController) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.Top
         ) {
-            // --- Card for form ---
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -133,42 +133,47 @@ fun TakeAttendanceScreen(navController: NavHostController) {
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    OutlinedTextField(
+                        value = classroom,
+                        onValueChange = { classroom = it },
+                        label = { Text("Classroom Number") },
+                        leadingIcon = { Icon(Icons.Default.School, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
                     Button(
                         onClick = {
-                            if (teacherId == "Unknown" || department.isBlank() || subject.isBlank()) {
+                            if (teacherId == "Unknown" || department.isBlank() || subject.isBlank() || classroom.isBlank()) {
                                 Toast.makeText(context, "⚠ Fill all fields", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
 
-                            getCurrentLocation(context) { lat, lon ->
-                                val json = JSONObject().apply {
-                                    put("teacherId", teacherId)
-                                    put("department", department)
-                                    put("subject", subject)
-                                    put("latitude", lat)
-                                    put("longitude", lon)
+                            val json = JSONObject().apply {
+                                put("teacherId", teacherId)
+                                put("department", department)
+                                put("subject", subject)
+                                put("classroom", classroom)  // ✅ instead of lat/lon
+                            }
+
+                            val requestBody = json.toString()
+                                .toRequestBody("application/json".toMediaTypeOrNull())
+
+                            val call = RetrofitClient.instance.generateCode(requestBody)
+
+                            call.enqueue(object : Callback<ResponseBody> {
+                                override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                                    if (response.isSuccessful) {
+                                        val result = response.body()?.string()
+                                        responseMessage = result
+                                    } else {
+                                        responseMessage = "⚠️ Server Error: ${response.errorBody()?.string()}"
+                                    }
                                 }
 
-                                val requestBody = json.toString()
-                                    .toRequestBody("application/json".toMediaTypeOrNull())
-
-                                val call = RetrofitClient.instance.generateCode(requestBody)
-
-                                call.enqueue(object : Callback<ResponseBody> {
-                                    override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                                        if (response.isSuccessful) {
-                                            val result = response.body()?.string()
-                                            responseMessage = result
-                                        } else {
-                                            responseMessage = "⚠️ Server Error: ${response.errorBody()?.string()}"
-                                        }
-                                    }
-
-                                    override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                                        responseMessage = "🚫 Network error: ${t.message}"
-                                    }
-                                })
-                            }
+                                override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                                    responseMessage = "🚫 Network error: ${t.message}"
+                                }
+                            })
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
@@ -180,7 +185,7 @@ fun TakeAttendanceScreen(navController: NavHostController) {
                 }
             }
 
-            // --- Show generated code in Dialog ---
+            // --- Show generated code ---
             responseMessage?.let { rawResponse ->
                 val formatted = rawResponse
                     .replace("{", "")

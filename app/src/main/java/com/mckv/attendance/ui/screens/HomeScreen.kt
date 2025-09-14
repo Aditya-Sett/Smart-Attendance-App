@@ -42,7 +42,12 @@ fun HomeScreen(navController: NavHostController) {
     val context = LocalContext.current
     val studentId = SessionManager.studentId ?: "Unknown"
     val department = SessionManager.department ?: "Unknown"
+
     var activeCode by remember { mutableStateOf<String?>(null) }
+    var activeSubject by remember { mutableStateOf<String?>(null) }
+    var activeClassroom by remember { mutableStateOf<String?>(null) }
+    var expiresAt by remember { mutableStateOf<Long?>(null) }
+
     var showDialog by remember { mutableStateOf(false) }
     var inputCode by remember { mutableStateOf("") }
     var responseMessage by remember { mutableStateOf<String?>(null) }
@@ -50,278 +55,212 @@ fun HomeScreen(navController: NavHostController) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    // 🔹 Show snackbar messages
     LaunchedEffect(responseMessage) {
         responseMessage?.let {
-            scope.launch {
-                snackbarHostState.showSnackbar(it)
-            }
-            responseMessage = null // reset after showing
+            scope.launch { snackbarHostState.showSnackbar(it) }
+            responseMessage = null
         }
     }
 
-    // Auto-check for active code every 10 seconds
-    Log.d("DEBUG", "🧠 department in SessionManager: ${SessionManager.department}")
+    // 🔹 Poll backend every 10 sec
     LaunchedEffect(Unit) {
         while (true) {
-            Log.d("DEBUG", "🧠 department in SessionManager: ${SessionManager.department}")
-            Log.d("DEBUG", "Checking for code...")
-            Log.d("DEBUG", "📡 Sending request to getLatestCode($department)")
-
-            getCurrentLocation(context) {lat, lon ->
-                val json = JSONObject().apply {
-                    put("department", department)
-                    put("studentLat", lat)
-                    put("studentLon", lon)
-                }
-                val requestBody = json.toString()
-                    .toRequestBody("application/json".toMediaTypeOrNull())
-
-                val call = RetrofitClient.instance.getLatestCode(requestBody)
-                call.enqueue(object : Callback<ResponseBody> {
-                    override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                        Log.d("DEBUG", "✅ Received response")
-                        if (response.isSuccessful) {
-                            val bodyString = response.body()?.string() ?: ""
-                            Log.d("DEBUG", "Raw body: $bodyString")
-
-                            if (bodyString.isNotBlank()) {
-                                try {
-                                    val result = JSONObject(bodyString)
-                                    val code = result.optString("code")
-                                    val active = result.optBoolean("active")
-
-                                    if (active && code.isNotBlank() && code != SessionManager.lastCodeSubmitted) {
-                                        activeCode = code
-                                        showDialog = true
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e("DEBUG", "❌ JSON parsing failed: ${e.message}")
-                                }
-                            }
-                        } else {
-                            Log.e("DEBUG", "❌ Unsuccessful response: ${response.code()}")
+            getCurrentLocation(context) { lat, lon ->
+                checkForActiveCode(
+                    department = department,
+                    lat = lat,
+                    lon = lon,
+                    onFound = { code, subject, classroom, expiry ->
+                        if (code != SessionManager.lastCodeSubmitted) {
+                            activeCode = code
+                            activeSubject = subject
+                            activeClassroom = classroom
+                            expiresAt = expiry
+                            showDialog = true
                         }
+                    },
+                    onError = { msg ->
+                        Log.e("DEBUG", "❌ $msg")
                     }
-
-                    override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                        Log.e("DEBUG", "🚫 Network error: ${t.message}")
-                    }
-                })
+                )
             }
-
-            /*val call = RetrofitClient.instance.getLatestCode(department)
-            call.enqueue(object : Callback<ResponseBody> {
-                override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                    Log.d("DEBUG", "✅ Received response")
-                    if (response.isSuccessful) {
-                        val bodyString = response.body()?.string() ?: ""
-                        Log.d("DEBUG", "Raw body: $bodyString")
-
-                        // ✅ Safe JSON parsing block
-                        if (bodyString.isNotBlank()) {
-                            try {
-                                val result = JSONObject(bodyString)
-                                val code = result.optString("code")
-                                val active = result.optBoolean("active")
-
-                                Log.d("DEBUG", "Active: $active, Code: $code, Last: ${SessionManager.lastCodeSubmitted}")
-
-                                if (active && code.isNotBlank() && code != SessionManager.lastCodeSubmitted) {
-                                    activeCode = code
-                                    showDialog = true
-                                }
-                            } catch (e: Exception) {
-                                Log.e("DEBUG", "❌ JSON parsing failed: ${e.message}")
-                            }
-                        } else {
-                            Log.e("DEBUG", "❌ Empty response body — skipping JSON parsing")
-                        }
-                    } else {
-                        Log.e("DEBUG", "❌ Unsuccessful response: ${response.code()}")
-                    }
-                }
-
-                override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                    Log.e("DEBUG", "🚫 Network error: ${t.message}")
-                }
-            })*/
-
-            delay(2000) // Check every 2s
+            delay(2000L) // every 2 sec
         }
     }
 
-    // Dialog for submitting code
+    // 🔹 Code entry dialog
     if (showDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = {
+                showDialog = false
+                inputCode = ""
+            },
             confirmButton = {
                 Button(onClick = {
                     if (inputCode.length != 4) {
                         Toast.makeText(context, "Enter a valid 4-digit code", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
-                    Log.d("DEBUG", "📤 Submitting studentId=$studentId, department=$department, code=$inputCode")
-
-                    getCurrentLocation(context) {lat, lon ->
-                        val json = JSONObject().apply {
-                            put("studentId", studentId)
-                            put("department", department)
-                            put("code", inputCode)
-                            put("studentLat", lat)
-                            put("studentLon", lon)
-                        }
-
-                        val requestBody = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
-
-                        RetrofitClient.instance.submitAttendanceCode(requestBody)
-                            .enqueue(object : Callback<ResponseBody> {
-                                override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                                    Log.d("DEBUG", "🔄 Submit response code: ${response.code()}")
-                                    if (response.isSuccessful) {
-                                        val bodyString = response.body()?.string() ?: ""
-                                        Log.d("DEBUG", "Raw response from backend: $bodyString")
-
-                                        try {
-                                            val result = JSONObject(bodyString)
-                                            val success = result.optBoolean("success")
-                                            Log.d("DEBUG", "✅ Parsed success: $success")
-
-                                            if (success) {
-                                                Log.d("DEBUG", "🔑 activeCode = $activeCode")
-                                                SessionManager.lastCodeSubmitted = activeCode
-                                                Log.d("DEBUG", "💾 Saved lastCodeSubmitted: $activeCode")
-                                                responseMessage = "✅ Attendance marked"
-                                            } else {
-                                                responseMessage = "❌ Code invalid"
-                                            }
-                                        } catch (e: Exception) {
-                                            Log.e("DEBUG", "❌ JSON parse error: ${e.message}")
-                                            responseMessage = "⚠️ Response error"
-                                        }
-                                    } else {
-                                        Log.e("DEBUG", "❌ Submission failed with code: ${response.code()}")
-                                        responseMessage = "❌ Code invalid or expired"
-                                    }
-                                    showDialog = false
-
-                                }
-
-                                override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                                    Log.e("DEBUG", "🚫 Network error on submit: ${t.message}")
-                                    responseMessage = "🚫 Network error: ${t.message}"
-                                    showDialog = false
-                                }
-                            })
+                    getCurrentLocation(context) { lat, lon ->
+                        submitAttendance(
+                            studentId = studentId,
+                            department = department,
+                            inputCode = inputCode,
+                            lat = lat,
+                            lon = lon,
+                            activeCode = activeCode,
+                            onSuccess = {
+                                SessionManager.lastCodeSubmitted = activeCode
+                                responseMessage = "✅ Attendance marked"
+                            },
+                            onFailure = { msg -> responseMessage = msg }
+                        )
+                        showDialog = false
+                        inputCode = ""
                     }
-
-                }) {
-                    Text("Submit")
-                }
+                }) { Text("Submit") }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showDialog = false }) {
-                    Text("Cancel")
-                }
+                OutlinedButton(onClick = {
+                    showDialog = false
+                    inputCode = ""
+                }) { Text("Cancel") }
             },
-            title = { Text("Enter Attendance Code") },
+            title = { Text("Attendance for $activeSubject") },
             text = {
                 Column {
-                    Text("Enter the 4-digit attendance code shared by your teacher.")
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Text("Classroom: $activeClassroom")
+                    expiresAt?.let {
+                        val minutesLeft = ((it - System.currentTimeMillis()) / 60000).coerceAtLeast(0)
+                        Text("Expires in $minutesLeft min")
+                    }
+                    Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = inputCode,
                         onValueChange = { if (it.length <= 4) inputCode = it },
-                        label = { Text("Attendance Code") },
+                        label = { Text("Enter 4-digit Code") },
                         singleLine = true
                     )
                 }
-            },
-            shape = MaterialTheme.shapes.large
+            }
         )
     }
 
-    // Main content
+    // 🔹 Main UI
     Scaffold(
         topBar = {
             Column {
                 TopAppBar(
                     title = { Text("Smart Attendance") },
-                    navigationIcon = {
-                        IconButton(onClick = { /* TODO: open drawer */ }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
-                        }
-                    },
                     actions = {
                         IconButton(onClick = { /* Profile */ }) {
-                            Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                            Icon(Icons.Default.AccountCircle, null)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFF1976D2), // bluish shade
-                        titleContentColor = Color.White,
-                        navigationIconContentColor = Color.White,
-                        actionIconContentColor = Color.White
+                        containerColor = Color(0xFF1976D2),
+                        titleContentColor = Color.White
                     )
                 )
-
-                // Student info bar under AppBar
                 Column(
-                    modifier = Modifier
+                    Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF2196F3)) // lighter blue
+                        .background(Color(0xFF2196F3))
                         .padding(16.dp)
                 ) {
-                    Text(
-                        text = "Welcome, $studentId",
-                        style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
-                    )
-                    Text(
-                        text = "Department: $department",
-                        style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
-                    )
+                    Text("Welcome, $studentId", color = Color.White)
+                    Text("Department: $department", color = Color.White)
                 }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center
+                .padding(innerPadding)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                /*Text(
-                    text = "Welcome, $studentId",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "Department: $department",
-                    style = MaterialTheme.typography.bodyMedium
-                )*/
+            Button(
+                onClick = { navController.navigate("schedule") },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("📅 View Schedule") }
 
-                Button(
-                    onClick = { navController.navigate("schedule") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp)
-                ) {
-                    Text("📅 View Schedule")
-                }
-
-                Button(
-                    onClick = { navController.navigate("attendance_summary") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp)
-                ) {
-                    Text("📊 Attendance History")
-                }
-            }
+            Button(
+                onClick = { navController.navigate("attendance_summary") },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("📊 Attendance History") }
         }
     }
+}
 
+fun checkForActiveCode(
+    department: String,
+    lat: Double,
+    lon: Double,
+    onFound: (String, String, String, Long) -> Unit,
+    onError: (String) -> Unit
+) {
+    val json = JSONObject().apply {
+        put("department", department)
+        put("studentLat", lat)
+        put("studentLon", lon)
+    }
+    val requestBody = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
+
+    RetrofitClient.instance.getLatestCode(requestBody).enqueue(object : Callback<ResponseBody> {
+        override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+            if (response.isSuccessful) {
+                val bodyString = response.body()?.string() ?: return
+                val result = JSONObject(bodyString)
+                val code = result.optString("code")
+                val subject = result.optString("subject")
+                val classroom = result.optString("classroom")
+                val expiresAt = result.optLong("expiresAt")
+                if (result.optBoolean("active") && code.isNotBlank()) {
+                    onFound(code, subject, classroom, expiresAt)
+                }
+            } else onError("Server returned ${response.code()}")
+        }
+        override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+            onError("Network error: ${t.message}")
+        }
+    })
+}
+
+fun submitAttendance(
+    studentId: String,
+    department: String,
+    inputCode: String,
+    lat: Double,
+    lon: Double,
+    activeCode: String?,
+    onSuccess: () -> Unit,
+    onFailure: (String) -> Unit
+) {
+    val json = JSONObject().apply {
+        put("studentId", studentId)
+        put("department", department)
+        put("code", inputCode)
+        put("studentLat", lat)
+        put("studentLon", lon)
+    }
+    val requestBody = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
+
+    RetrofitClient.instance.submitAttendanceCode(requestBody)
+        .enqueue(object : Callback<ResponseBody> {
+            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                if (response.isSuccessful) {
+                    val result = JSONObject(response.body()?.string() ?: "{}")
+                    if (result.optBoolean("success")) onSuccess()
+                    else onFailure("Invalid code")
+                } else onFailure("Code invalid or expired")
+            }
+            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                onFailure("Network error: ${t.message}")
+            }
+        })
 }
