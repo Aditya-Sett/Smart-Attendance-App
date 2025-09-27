@@ -23,19 +23,18 @@ import retrofit2.Callback
 import retrofit2.Response
 
 import com.mckv.attendance.utils.getCurrentLocation
+import com.mckv.attendance.utils.getWifiFingerPrint
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.OutlinedButton
 import kotlinx.coroutines.launch
-
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.graphics.Color
 
+// 🔹 Main Home Screen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavHostController) {
@@ -45,7 +44,6 @@ fun HomeScreen(navController: NavHostController) {
 
     var activeCode by remember { mutableStateOf<String?>(null) }
     var activeSubject by remember { mutableStateOf<String?>(null) }
-    var activeClassroom by remember { mutableStateOf<String?>(null) }
     var expiresAt by remember { mutableStateOf<Long?>(null) }
 
     var showDialog by remember { mutableStateOf(false) }
@@ -63,7 +61,7 @@ fun HomeScreen(navController: NavHostController) {
         }
     }
 
-    // 🔹 Poll backend every 10 sec
+    // 🔹 Poll backend every 2 sec for active code
     LaunchedEffect(Unit) {
         while (true) {
             getCurrentLocation(context) { lat, lon ->
@@ -71,18 +69,15 @@ fun HomeScreen(navController: NavHostController) {
                     department = department,
                     lat = lat,
                     lon = lon,
-                    onFound = { code, subject, classroom, expiry ->
+                    onFound = { code, subject, expiry ->
                         if (code != SessionManager.lastCodeSubmitted) {
                             activeCode = code
                             activeSubject = subject
-                            activeClassroom = classroom
                             expiresAt = expiry
                             showDialog = true
                         }
                     },
-                    onError = { msg ->
-                        Log.e("DEBUG", "❌ $msg")
-                    }
+                    onError = { msg -> Log.e("DEBUG", "❌ $msg") }
                 )
             }
             delay(2000L) // every 2 sec
@@ -102,24 +97,25 @@ fun HomeScreen(navController: NavHostController) {
                         Toast.makeText(context, "Enter a valid 4-digit code", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
-                    getCurrentLocation(context) { lat, lon ->
-                        submitAttendance(
-                            studentId = studentId,
-                            department = department,
-                            inputCode = inputCode,
-                            lat = lat,
-                            lon = lon,
-                            activeCode = activeCode,
-                            onSuccess = {
-                                SessionManager.lastCodeSubmitted = activeCode
-                                responseMessage = "✅ Attendance marked"
-                            },
-                            onFailure = { msg -> responseMessage = msg }
-                        )
-                        showDialog = false
-                        inputCode = ""
-                    }
-                }) { Text("Submit") }
+
+                    submitAttendance(
+                        context = context,
+                        studentId = studentId,
+                        department = department,
+                        inputCode = inputCode,
+                        activeCode = activeCode,
+                        onSuccess = {
+                            SessionManager.lastCodeSubmitted = activeCode
+                            responseMessage = "✅ Attendance marked"
+                        },
+                        onFailure = { msg -> responseMessage = msg }
+                    )
+
+                    showDialog = false
+                    inputCode = ""
+                }) {
+                    Text("Submit")
+                }
             },
             dismissButton = {
                 OutlinedButton(onClick = {
@@ -130,7 +126,6 @@ fun HomeScreen(navController: NavHostController) {
             title = { Text("Attendance for $activeSubject") },
             text = {
                 Column {
-                    Text("Classroom: $activeClassroom")
                     expiresAt?.let {
                         val minutesLeft = ((it - System.currentTimeMillis()) / 60000).coerceAtLeast(0)
                         Text("Expires in $minutesLeft min")
@@ -197,17 +192,18 @@ fun HomeScreen(navController: NavHostController) {
     }
 }
 
+// 🔹 Check backend for active code
 fun checkForActiveCode(
     department: String,
     lat: Double,
     lon: Double,
-    onFound: (String, String, String, Long) -> Unit,
+    onFound: (String, String, Long) -> Unit,
     onError: (String) -> Unit
 ) {
     val json = JSONObject().apply {
         put("department", department)
-        put("studentLat", lat)
-        put("studentLon", lon)
+        //put("studentLat", lat)
+        //put("studentLon", lon)
     }
     val requestBody = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
 
@@ -218,10 +214,9 @@ fun checkForActiveCode(
                 val result = JSONObject(bodyString)
                 val code = result.optString("code")
                 val subject = result.optString("subject")
-                val classroom = result.optString("classroom")
                 val expiresAt = result.optLong("expiresAt")
                 if (result.optBoolean("active") && code.isNotBlank()) {
-                    onFound(code, subject, classroom, expiresAt)
+                    onFound(code, subject, expiresAt)
                 }
             } else onError("Server returned ${response.code()}")
         }
@@ -231,23 +226,25 @@ fun checkForActiveCode(
     })
 }
 
+// 🔹 Submit attendance with WiFi fingerprint
 fun submitAttendance(
+    context: android.content.Context,
     studentId: String,
     department: String,
     inputCode: String,
-    lat: Double,
-    lon: Double,
     activeCode: String?,
     onSuccess: () -> Unit,
     onFailure: (String) -> Unit
 ) {
+    val wifiFingerprint = getWifiFingerPrint(context)
+
     val json = JSONObject().apply {
         put("studentId", studentId)
         put("department", department)
         put("code", inputCode)
-        put("studentLat", lat)
-        put("studentLon", lon)
+        put("wifiFingerprint", wifiFingerprint)  // 🔹 only sent, backend checks
     }
+
     val requestBody = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
 
     RetrofitClient.instance.submitAttendanceCode(requestBody)
@@ -256,11 +253,12 @@ fun submitAttendance(
                 if (response.isSuccessful) {
                     val result = JSONObject(response.body()?.string() ?: "{}")
                     if (result.optBoolean("success")) onSuccess()
-                    else onFailure("Invalid code")
-                } else onFailure("Code invalid or expired")
+                    else onFailure("❌ Invalid code or WiFi mismatch")
+                } else onFailure("⚠️ Code invalid or expired")
             }
+
             override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                onFailure("Network error: ${t.message}")
+                onFailure("🚫 Network error: ${t.message}")
             }
         })
 }

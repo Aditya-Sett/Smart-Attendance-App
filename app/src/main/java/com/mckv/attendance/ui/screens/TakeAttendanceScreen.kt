@@ -1,86 +1,143 @@
 package com.mckv.attendance.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
+import android.os.Build
+import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-//import androidx.compose.ui.Modifier
-import androidx.navigation.NavHostController
-import com.mckv.attendance.data.local.SessionManager
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.toRequestBody
-import com.mckv.attendance.data.remote.RetrofitClient
-import okhttp3.ResponseBody
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import org.json.JSONObject
-
-// Material3
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-
-// Compose UI
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-//import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-
-// Icons
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.mckv.attendance.data.local.SessionManager
+import com.mckv.attendance.data.remote.RetrofitClient
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
+import org.json.JSONArray
+import org.json.JSONObject
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
+// --- Helper: Build fingerprint from scan results ---
+private fun buildWifiFingerprint(context: Context, topN: Int = 8): JSONArray {
+    val jsonArr = JSONArray()
+    try {
+        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        // Trigger a scan - may be throttled on newer Android versions.
+        try {
+            wifiManager.startScan()
+        } catch (e: SecurityException) {
+            // startScan may throw if permission missing
+            Log.e("WiFiScan", "startScan failed: ${e.message}")
+        }
 
-import com.mckv.attendance.utils.getCurrentLocation
+        // Get last known scan results (may be empty if there was no recent scan)
+        val scans = try {
+            wifiManager.scanResults ?: emptyList()
+        } catch (se: SecurityException) {
+            emptyList()
+        }
+
+        // Sort by RSSI descending and take top N unique BSSIDs
+        val top = scans
+            .sortedByDescending { it.level }
+            .distinctBy { it.BSSID?.lowercase() ?: "" }
+            .take(topN)
+
+        for (r in top) {
+            val obj = JSONObject()
+            obj.put("SSID", r.SSID ?: "")
+            obj.put("BSSID", r.BSSID ?: "")
+            obj.put("level", r.level) // negative dBm values
+            jsonArr.put(obj)
+        }
+    } catch (e: Exception) {
+        Log.e("WiFiFingerprint", "error building fingerprint: ${e.message}")
+    }
+    return jsonArr
+}
+
+// --- Permission utility (request multiple) ---
+@Composable
+private fun rememberWifiScanPermissions(): Pair<Boolean, () -> Unit> {
+    val context = LocalContext.current
+    var granted by remember {
+        mutableStateOf(false)
+    }
+
+    val permissions = mutableListOf<String>().apply {
+        // Location permission is required for Wi-Fi scans on most Android versions
+        add(Manifest.permission.ACCESS_FINE_LOCATION)
+        // Starting Android 12 / API 31, NEARBY_WIFI_DEVICES is recommended for direct wifi access
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            add(Manifest.permission.NEARBY_WIFI_DEVICES)
+        }
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        // results is a Map<String, Boolean>
+        granted = results.values.all { it }
+        if (!granted) {
+            Toast.makeText(context, "Location/Wi-Fi permission required for fingerprinting", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // initial permission check
+    LaunchedEffect(Unit) {
+        val ok = permissions.all { p ->
+            ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
+        }
+        granted = ok
+    }
+
+    // function to launch permission request
+    val request: () -> Unit = {
+        launcher.launch(permissions.toTypedArray())
+    }
+
+    return Pair(granted, request)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TakeAttendanceScreen(navController: NavHostController) {
+fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
     val context = LocalContext.current
     val teacherId = SessionManager.teacherId ?: "Unknown"
 
     var department by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
-    var classroom by remember { mutableStateOf("") }
     var responseMessage by remember { mutableStateOf<String?>(null) }
+
+    // permission helper: returns (granted, requestFunction)
+    val (hasPermissions, requestPermissions) = rememberWifiScanPermissions()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Teacher Panel") },
                 navigationIcon = {
-                    IconButton(onClick = { /* TODO: Add drawer later */ }) {
+                    IconButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
                 },
@@ -133,33 +190,39 @@ fun TakeAttendanceScreen(navController: NavHostController) {
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    OutlinedTextField(
-                        value = classroom,
-                        onValueChange = { classroom = it },
-                        label = { Text("Classroom Number") },
-                        leadingIcon = { Icon(Icons.Default.School, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
                     Button(
                         onClick = {
-                            if (teacherId == "Unknown" || department.isBlank() || subject.isBlank() || classroom.isBlank()) {
+                            if (teacherId == "Unknown" || department.isBlank() || subject.isBlank()) {
                                 Toast.makeText(context, "⚠ Fill all fields", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
 
+                            // Ensure permissions
+                            if (!hasPermissions) {
+                                requestPermissions()
+                                return@Button
+                            }
+
+                            // Build Wi-Fi fingerprint (top 8 APs)
+                            val wifiFingerprint = buildWifiFingerprint(context, topN = 8)
+
+                            if (wifiFingerprint.length() == 0) {
+                                Toast.makeText(context, "No Wi-Fi networks found. Try again or enable Wi-Fi scanning.", Toast.LENGTH_LONG).show()
+                                return@Button
+                            }
+
+                            // Build payload
                             val json = JSONObject().apply {
                                 put("teacherId", teacherId)
                                 put("department", department)
                                 put("subject", subject)
-                                put("classroom", classroom)  // ✅ instead of lat/lon
+                                put("wifiFingerprint", wifiFingerprint) // JSONArray
                             }
 
                             val requestBody = json.toString()
                                 .toRequestBody("application/json".toMediaTypeOrNull())
 
                             val call = RetrofitClient.instance.generateCode(requestBody)
-
                             call.enqueue(object : Callback<ResponseBody> {
                                 override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
                                     if (response.isSuccessful) {
