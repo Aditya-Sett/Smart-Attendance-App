@@ -38,6 +38,7 @@ import com.mckv.attendance.ui.screens.MainHomeScreen
 import com.mckv.attendance.ui.screens.ScheduleScreen
 import com.mckv.attendance.ui.screens.StudentsAttendanceSummaryScreen
 import com.mckv.attendance.ui.screens.TakeAttendanceScreen
+import com.mckv.attendance.ui.screens.ExportAttendanceScreen
 import com.mckv.attendance.ui.screens.TeacherScreen
 import com.mckv.attendance.ui.screens.AdminDashboard
 import com.mckv.attendance.ui.screens.ClassroomListScreen
@@ -137,6 +138,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("take_attendance") {
                         TakeAttendanceScreen(navController)
+                    }
+                    composable("export_attendance") {
+                        ExportAttendanceScreen(navController)
                     }
                     composable("consider_absence") {
                         ConsiderAbsenceScreen(navController)

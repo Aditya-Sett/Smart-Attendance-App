@@ -73,6 +73,15 @@ fun TeacherScreen(navController: NavHostController) {
         }
 
         Button(
+            onClick = { navController.navigate("export_attendance") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text("Show Attendance Records")
+        }
+
+        Button(
             onClick = { navController.navigate("consider_absence") },
             modifier = Modifier
                 .fillMaxWidth()

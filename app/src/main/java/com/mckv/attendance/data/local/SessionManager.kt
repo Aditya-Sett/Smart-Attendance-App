@@ -34,6 +34,11 @@ object SessionManager {
         get() = preferences.getString("department", null)
         set(value) = preferences.edit().putString("department", value).apply()
 
+    var admissionYear: String?
+        get() = preferences.getString("admissionYear", null)
+        set(value) = preferences.edit().putString("admissionYear", value).apply()
+
+
     // Attendance Code Submission Tracking
     var lastCodeSubmitted: String?
         get() = preferences.getString("lastCodeSubmitted", null)

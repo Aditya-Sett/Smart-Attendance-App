@@ -133,10 +133,13 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
 
                         if (success) {
                             val profileData = json.optJSONObject("data")
+                            System.out.println("🟩 Raw profileData: " + profileData.toString())
                             if (profileData != null) {
                                 val role = profileData.optString("role")
                                 val department = profileData.optString("department")
                                 val studentId = profileData.optString("studentId")
+                                val admissionYear = profileData.optString("admission_year",profileData.optString("admissionYear", ""))
+                                System.out.println("🟩 Extracted admissionYear: '$admissionYear'")
 
 
 
@@ -147,6 +150,7 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
 
                                         SessionManager.studentId = studentId
                                         SessionManager.department = department
+                                        SessionManager.admissionYear = admissionYear
                                     }
                                     "ROLE_TEACHER" -> {
                                         SessionManager.teacherId = studentId

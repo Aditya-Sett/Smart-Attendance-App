@@ -41,6 +41,7 @@ fun HomeScreen(navController: NavHostController) {
     val context = LocalContext.current
     val studentId = SessionManager.studentId ?: "Unknown"
     val department = SessionManager.department ?: "Unknown"
+    val admissionYear = SessionManager.admissionYear ?: "Unknown"
 
     var activeCode by remember { mutableStateOf<String?>(null) }
     var activeSubject by remember { mutableStateOf<String?>(null) }
@@ -67,6 +68,7 @@ fun HomeScreen(navController: NavHostController) {
             getCurrentLocation(context) { lat, lon ->
                 checkForActiveCode(
                     department = department,
+                    admissionYear = admissionYear,
                     lat = lat,
                     lon = lon,
                     onFound = { code, subject, expiry ->
@@ -195,6 +197,7 @@ fun HomeScreen(navController: NavHostController) {
 // 🔹 Check backend for active code
 fun checkForActiveCode(
     department: String,
+    admissionYear: String,
     lat: Double,
     lon: Double,
     onFound: (String, String, Long) -> Unit,
@@ -202,14 +205,19 @@ fun checkForActiveCode(
 ) {
     val json = JSONObject().apply {
         put("department", department)
+        put("admissionYear", admissionYear)
         //put("studentLat", lat)
         //put("studentLon", lon)
     }
+
     val requestBody = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
+
+    Log.d("GAC Checking", "🔎 Sending -> Dept=$department, AdmissionYear=$admissionYear")
 
     RetrofitClient.instance.getLatestCode(requestBody).enqueue(object : Callback<ResponseBody> {
         override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
             if (response.isSuccessful) {
+                Log.d("GAC Checking", "✅ Code fetched successfully")
                 val bodyString = response.body()?.string() ?: return
                 val result = JSONObject(bodyString)
                 val code = result.optString("code")

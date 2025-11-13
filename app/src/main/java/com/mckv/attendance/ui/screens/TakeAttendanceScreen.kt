@@ -190,9 +190,46 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    // --- Dropdown for Class Name ---
+                    var expanded by remember { mutableStateOf(false) }
+                    val classOptions = listOf("1st Year", "2nd Year", "3rd Year", "4th Year")
+                    var className by remember { mutableStateOf("") }
+
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded }
+                    ) {
+                        OutlinedTextField(
+                            value = className,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Class") },
+                            leadingIcon = { Icon(Icons.Default.School, contentDescription = null) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            classOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        className = option
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
                     Button(
                         onClick = {
-                            if (teacherId == "Unknown" || department.isBlank() || subject.isBlank()) {
+                            if (teacherId == "Unknown" || department.isBlank() || subject.isBlank() || className.isBlank()) {
                                 Toast.makeText(context, "⚠ Fill all fields", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
@@ -217,6 +254,7 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                                 put("department", department)
                                 put("subject", subject)
                                 put("wifiFingerprint", wifiFingerprint) // JSONArray
+                                put("className", className)
                             }
 
                             val requestBody = json.toString()

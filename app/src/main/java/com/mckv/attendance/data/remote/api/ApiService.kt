@@ -60,4 +60,13 @@ interface ApiService {
     fun getStudentsByDepartment(
         @Path("department") department: String
     ): Call<ResponseBody>
+
+    @GET("api/attendance/export/{department}/{subject}/{className}/{academicYear}")
+    fun exportAttendanceExcel(
+        @Path("department") department: String,
+        @Path("subject") subject: String,
+        @Path("className") className: String,
+        @Path("academicYear") academicYear: String
+    ): Call<ResponseBody>
+
 }
