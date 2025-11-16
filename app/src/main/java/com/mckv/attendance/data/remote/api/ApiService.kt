@@ -41,6 +41,11 @@ interface ApiService {
         @Body requestBody: RequestBody
     ): Call<ResponseBody>
 
+    @POST("api/attendance/delete")
+    fun closeCode(
+        @Body requestBody: RequestBody
+    ): Call<ResponseBody>
+
     @GET("api/attendance/summary/{studentId}/{department}")
     fun getAttendanceSummary(
         @Path("studentId") studentId: String,

@@ -9,10 +9,14 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCode
@@ -28,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.data.remote.RetrofitClient
+import kotlinx.coroutines.delay
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
@@ -36,6 +41,8 @@ import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 // --- Helper: Build fingerprint from scan results ---
 private fun buildWifiFingerprint(context: Context, topN: Int = 8): JSONArray {
@@ -287,7 +294,7 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
             }
 
             // --- Show generated code ---
-            responseMessage?.let { rawResponse ->
+            /*responseMessage?.let { rawResponse ->
                 val formatted = rawResponse
                     .replace("{", "")
                     .replace("}", "")
@@ -296,7 +303,7 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                     .replace(":", " : ")
                     .trim()
 
-                AlertDialog(
+                /*AlertDialog(
                     onDismissRequest = { responseMessage = null },
                     confirmButton = {
                         Button(onClick = { responseMessage = null }) {
@@ -318,8 +325,264 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                         }
                     },
                     shape = MaterialTheme.shapes.large
-                )
+                )*/
+                // FULL-SCREEN DIM BACKGROUND + CENTERED CARD
+                /*Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.45f))        // Dim background
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF2E2E2E)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+
+                            Text(
+                                text = "Attendance Code Generated",
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                "Share this code with your students:",
+                                color = Color.LightGray,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Response text section
+                            Text(
+                                text = formatted,
+                                color = Color(0xFF64B5F6),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Text(
+                                "Valid for 2–3 minutes",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            Button(
+                                onClick = { responseMessage = null },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth(0.5f)
+                            ) {
+                                Text("OK")
+                            }
+                        }
+                    }
+                }*/
+                /*Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.45f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF2E2E2E)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+                    ) {
+
+                        // SCROLLABLE CONTENT SECTION
+                        Column(
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .heightIn(min = 200.dp, max = 450.dp)   // ADD HEIGHT LIMIT
+                                .verticalScroll(rememberScrollState()), // ENABLE SCROLLING
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+
+                            Text(
+                                text = "Attendance Code Generated",
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+
+                            Spacer(Modifier.height(6.dp))
+
+                            Text(
+                                "Share this code with your students:",
+                                color = Color.LightGray
+                            )
+
+                            Spacer(Modifier.height(16.dp))
+
+                            Text(
+                                text = formatted,
+                                color = Color(0xFF64B5F6),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+
+                            Spacer(Modifier.height(14.dp))
+
+                            Text(
+                                "Valid for 2–3 minutes",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+
+                            Spacer(Modifier.height(20.dp))
+                        }
+
+                        // OK button (fixed at bottom)
+                        Button(
+                            onClick = { responseMessage = null },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Text("OK")
+                        }
+                    }
+                }*/
+            }*/
+            if (responseMessage != null) {
+
+                // ---- Extract values from JSON ----
+                Log.d("DEBUG_RESPONSE", responseMessage!!)
+                val json = JSONObject(responseMessage!!)
+                val code = json.getString("code")
+                val department = json.getString("department")
+                val subject = json.getString("subject")
+                val className = json.getString("className")
+                val generatedAt = json.getString("generatedAt")
+                val expiresAt = json.getString("expiresAt")
+
+                // ---- Parse time + timer ----
+                var remainingTime by remember { mutableStateOf(0L) }
+
+                LaunchedEffect(Unit) {
+                    val format = SimpleDateFormat("dd-MM-yyyy hh:mm:ss a", Locale.getDefault())
+                    val genTime = format.parse(generatedAt)?.time ?: 0L
+                    val expTime = format.parse(expiresAt)?.time ?: 0L
+
+                    remainingTime = maxOf((expTime - genTime) / 1000,0)
+                }
+
+                LaunchedEffect(remainingTime) {
+                    while (remainingTime > 0) {
+                        delay(1000)
+                        remainingTime--
+                    }
+                }
+
+                val timerText = String.format("%02d:%02d", remainingTime / 60, remainingTime % 60)
+
+                // ---- UI POPUP ----
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.45f)),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    Card(
+                        modifier = Modifier
+                            .padding(20.dp)
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+
+                        Column(Modifier.padding(20.dp)) {
+
+                            // ---- TOP BAR WITH CLOSE BUTTON ----
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Attendance Code",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                IconButton(onClick = {
+
+                                    // ---- API CALL BEFORE CLOSING ----
+                                    val jsonReq = JSONObject().apply {
+                                        put("teacherId", SessionManager.teacherId)
+                                        put("department", department)
+                                        put("subject", subject)
+                                        put("className", className)
+                                    }
+
+                                    val body = jsonReq.toString()
+                                        .toRequestBody("application/json".toMediaTypeOrNull())
+
+                                    RetrofitClient.instance.closeCode(body)
+                                        .enqueue(object : Callback<ResponseBody> {
+                                            override fun onResponse(
+                                                call: Call<ResponseBody>,
+                                                response: Response<ResponseBody>
+                                            ) {
+                                                val r = response.body()?.string()
+                                                if (r != null && JSONObject(r).getBoolean("success")) {
+                                                    responseMessage = null
+                                                }
+                                            }
+
+                                            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {}
+                                        })
+
+                                }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Close")
+                                }
+                            }
+
+                            Spacer(Modifier.height(12.dp))
+
+                            // ---- CODE IN LARGE SIZE ----
+                            Text(
+                                text = code,
+                                style = MaterialTheme.typography.displaySmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1976D2)
+                                )
+                            )
+
+                            Spacer(Modifier.height(16.dp))
+
+                            // ---- DETAILS ----
+                            Text("Department: $department", fontWeight = FontWeight.Medium)
+                            Text("Subject: $subject", fontWeight = FontWeight.Medium)
+
+                            Spacer(Modifier.height(20.dp))
+
+                            // ---- TIMER ----
+                            Text(
+                                text = "Expires in: $timerText",
+                                color = if (remainingTime < 20) Color.Red else Color(0xFF388E3C),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
+
         }
     }
 }
