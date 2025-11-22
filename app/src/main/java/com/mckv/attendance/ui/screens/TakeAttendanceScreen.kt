@@ -41,6 +41,11 @@ import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.sp
+import com.mckv.attendance.R
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -84,7 +89,7 @@ private fun buildWifiFingerprint(context: Context, topN: Int = 8): JSONArray {
 }
 
 // --- Permission utility (request multiple) ---
-@Composable
+/*@Composable
 private fun rememberWifiScanPermissions(): Pair<Boolean, () -> Unit> {
     val context = LocalContext.current
     var granted by remember {
@@ -124,7 +129,61 @@ private fun rememberWifiScanPermissions(): Pair<Boolean, () -> Unit> {
     }
 
     return Pair(granted, request)
+}*/
+@Composable
+private fun rememberWifiScanPermissions(): Pair<Boolean, () -> Unit> {
+    val context = LocalContext.current
+    var granted by remember { mutableStateOf(false) }
+
+    val permissions = mutableListOf(
+        Manifest.permission.ACCESS_FINE_LOCATION
+    )
+
+    /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)*/
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+    {
+        permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES)
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+
+        val fineLocation = results[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val wifiNearby =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                results[Manifest.permission.NEARBY_WIFI_DEVICES] == true
+            else true
+
+        granted = fineLocation && wifiNearby
+
+        if (!granted) {
+            Toast.makeText(
+                context,
+                "Location & Wi-Fi permissions required for fingerprinting",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    // Initial check
+    LaunchedEffect(Unit) {
+        val fineLocation =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                    PackageManager.PERMISSION_GRANTED
+
+        val wifiNearby =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                ContextCompat.checkSelfPermission(context, Manifest.permission.NEARBY_WIFI_DEVICES) ==
+                        PackageManager.PERMISSION_GRANTED
+            else true
+
+        granted = fineLocation && wifiNearby
+    }
+
+    return granted to { launcher.launch(permissions.toTypedArray()) }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,6 +194,7 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
     var department by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
     var responseMessage by remember { mutableStateOf<String?>(null) }
+    var responseList by remember { mutableStateOf(mutableListOf<String>()) }
 
     // permission helper: returns (granted, requestFunction)
     val (hasPermissions, requestPermissions) = rememberWifiScanPermissions()
@@ -272,7 +332,10 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                                 override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
                                     if (response.isSuccessful) {
                                         val result = response.body()?.string()
-                                        responseMessage = result
+                                        //responseMessage = result
+                                        if (result != null) {
+                                            responseList = (responseList + result).toMutableList()
+                                        }
                                     } else {
                                         responseMessage = "⚠️ Server Error: ${response.errorBody()?.string()}"
                                     }
@@ -457,10 +520,12 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                     }
                 }*/
             }*/
-            if (responseMessage != null) {
+            //if (responseMessage != null)
+            if (responseList.isNotEmpty())
+            {
 
                 // ---- Extract values from JSON ----
-                Log.d("DEBUG_RESPONSE", responseMessage!!)
+                /*Log.d("DEBUG_RESPONSE", responseMessage!!)
                 val json = JSONObject(responseMessage!!)
                 val code = json.getString("code")
                 val department = json.getString("department")
@@ -580,9 +645,162 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                             )
                         }
                     }
+                }*/
+                LazyColumn {
+                    items (responseList) { res -> // error occur
+
+                        CompactCodeCard(
+                            //response = responseMessage!!,
+                            response = res, // error occur
+                            onClose = {
+
+                                // CALL Close API
+                                val jsonReq = JSONObject().apply {
+                                    val obj = JSONObject(res)
+                                    put("teacherId", SessionManager.teacherId)
+                                    //put("department", JSONObject(responseMessage!!).getString("department"))
+                                    //put("subject", JSONObject(responseMessage!!).getString("subject"))
+                                    //put("className", JSONObject(responseMessage!!).getString("className"))
+                                    put("department", obj.getString("department"))
+                                    put("subject", obj.getString("subject"))
+                                    put("className", obj.getString("className"))
+                                }
+
+                                val body = jsonReq.toString()
+                                    .toRequestBody("application/json".toMediaTypeOrNull())
+
+                                RetrofitClient.instance.closeCode(body)
+                                    .enqueue(object : Callback<ResponseBody> {
+                                        override fun onResponse(
+                                            call: Call<ResponseBody>,
+                                            response: Response<ResponseBody>
+                                        ) {
+                                            val r = response.body()?.string()
+                                            if (r != null && JSONObject(r).getBoolean("success")) {
+                                                //responseMessage = null
+                                                responseList = responseList.toMutableList().also { it.remove(res) }
+                                            }
+                                        }
+                                        override fun onFailure(call: Call<ResponseBody>, t: Throwable) {}
+                                    })
+                            }
+                        )
+                    }
                 }
             }
 
+        }
+    }
+}
+
+@Composable
+fun CompactCodeCard(response: String, onClose: () -> Unit) {
+    val json = JSONObject(response)
+    val code = json.getString("code")
+    val department = json.getString("department")
+    val subject = json.getString("subject")
+    val className = json.getString("className")
+    val generatedAt = json.getString("generatedAt")
+    val expiresAt = json.getString("expiresAt")
+
+    var remainingTime by remember { mutableStateOf(0L) }
+
+    // TIMER CALCULATION
+    LaunchedEffect(Unit) {
+        val format = SimpleDateFormat("dd-MM-yyyy hh:mm:ss a", Locale.getDefault())
+        val genTime = format.parse(generatedAt)?.time ?: 0L
+        val expTime = format.parse(expiresAt)?.time ?: 0L
+        remainingTime = maxOf((expTime - genTime) / 1000, 0)
+    }
+
+    LaunchedEffect(remainingTime) {
+        while (remainingTime > 0) {
+            delay(1000)
+            remainingTime--
+            Log.d("Remaining time","$remainingTime")
+        }
+    }
+
+    val timerText = String.format("%02d:%02d", remainingTime / 60, remainingTime % 60)
+
+    // ---- COMPACT CARD UI ----
+    Card(
+        modifier = Modifier
+            .padding(12.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(6.dp)
+    ) {
+
+        Column(Modifier.padding(16.dp)) {
+
+            // TOP ROW
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = "$code",
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1976D2)
+                    )
+
+                )
+
+                /*IconButton(onClick = onClose) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }*/
+                if (remainingTime.toInt() != 0) {
+                    IconButton(
+                        onClick = onClose,
+                        modifier = Modifier.padding(end = 6.dp).size(30.dp) // Button Size
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.close_circle),
+                            contentDescription = "Close",
+                            tint = Color.Unspecified,   // IMPORTANT: do not recolor XML
+                            modifier = Modifier.size(50.dp) // Icon Size
+                        )
+                    }
+                }
+                else {
+                    Text(
+                        text = "Expired",
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = Color(0xFFFF0000)
+                        )
+
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(2.dp))
+
+            // BOTTOM ROW
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Column {
+                    Text("$department | $subject", fontWeight = FontWeight.Medium)
+                    //Text("$subject", fontWeight = FontWeight.Medium)
+                }
+
+                Text(
+                    text = timerText,
+                    color = if (remainingTime < 20) Color.Red else Color(0xFF388E3C),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

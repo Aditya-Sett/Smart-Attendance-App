@@ -260,9 +260,29 @@ fun submitAttendance(
             override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
                 if (response.isSuccessful) {
                     val result = JSONObject(response.body()?.string() ?: "{}")
+                    Log.d("Result", result.toString())
                     if (result.optBoolean("success")) onSuccess()
                     else onFailure("❌ Invalid code or WiFi mismatch")
-                } else onFailure("⚠️ Code invalid or expired")
+                } else {
+                    val errorBody = response.errorBody()?.string()?: "Unknown Error"
+                    onFailure("⚠️ Code invalid or expired $errorBody")
+                    /*val bodyStringgg = response.body()?.string()
+                    if (bodyStringgg != null) {
+                        Log.d("bodyStringgg", bodyStringgg)
+                        val json_bodystring = JSONObject(bodyStringgg)
+                        val message = json_bodystring.optString("message")
+                        onFailure("⚠️ $message")
+                    }
+                    else {
+                        Log.d("bodyStringgg", "bodyStringgg is null")
+                    }
+                    /*if (bodyStringgg != null) {
+                        val json_bodystring = JSONObject(bodyStringgg)
+                        val message = json_bodystring.optString("message")
+                        //Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    }*/
+
+                */}
             }
 
             override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
