@@ -1,6 +1,9 @@
 package com.mckv.attendance.ui.screens
 
+import com.mckv.attendance.utils.startBleAdvertising
 import android.Manifest
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
@@ -184,17 +187,19 @@ private fun rememberWifiScanPermissions(): Pair<Boolean, () -> Unit> {
     return granted to { launcher.launch(permissions.toTypedArray()) }
 }
 
-
+@SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
     val context = LocalContext.current
+    val activity = context as Activity
     val teacherId = SessionManager.teacherId ?: "Unknown"
 
     var department by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
     var responseMessage by remember { mutableStateOf<String?>(null) }
     var responseList by remember { mutableStateOf(mutableListOf<String>()) }
+    var bluetoothUuid by remember { mutableStateOf<String?>(null) }
 
     // permission helper: returns (granted, requestFunction)
     val (hasPermissions, requestPermissions) = rememberWifiScanPermissions()
@@ -315,17 +320,73 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                                 return@Button
                             }
 
+                            startBleAdvertising(
+                                context = context,
+                                activity = activity
+                            ){ uuid ->
+                                bluetoothUuid = uuid
+                                println("Send UUID to backend → $uuid")
+                                Toast.makeText(context,"Send UUID to backend → $uuid", Toast.LENGTH_LONG).show()
+                                val json = JSONObject().apply {
+                                    put("teacherId", teacherId)
+                                    put("department", department)
+                                    put("subject", subject)
+                                    put("wifiFingerprint", wifiFingerprint) // JSONArray
+                                    put("className", className)
+                                    /*bluetoothUuid?.let {
+                                        put("bluetoothUuid", it)
+                                    }*/
+                                    put("bluetoothUuid", bluetoothUuid)
+                                }
+                                println("json go to backend --->  $json")
+
+                                val requestBody = json.toString()
+                                    .toRequestBody("application/json".toMediaTypeOrNull())
+
+                                println("generated code requestBody --->  $requestBody")
+                                Log.d("JSON", requestBody.toString())
+                                Toast.makeText(context,"$requestBody", Toast.LENGTH_LONG).show()
+
+                                val call = RetrofitClient.instance.generateCode(requestBody)
+                                call.enqueue(object : Callback<ResponseBody> {
+                                    override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                                        if (response.isSuccessful) {
+                                            val result = response.body()?.string()
+                                            //responseMessage = result
+                                            if (result != null) {
+                                                responseList = (responseList + result).toMutableList()
+                                            }
+                                        } else {
+                                            responseMessage = "⚠️ Server Error: ${response.errorBody()?.string()}"
+                                        }
+                                    }
+
+                                    override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                                        responseMessage = "🚫 Network error: ${t.message}"
+                                    }
+                                })
+                            }
+
+
                             // Build payload
-                            val json = JSONObject().apply {
+                            /*val json = JSONObject().apply {
                                 put("teacherId", teacherId)
                                 put("department", department)
                                 put("subject", subject)
                                 put("wifiFingerprint", wifiFingerprint) // JSONArray
                                 put("className", className)
-                            }
+                                bluetoothUuid?.let {
+                                    put("bluetoothUuid", it)
+                                }
+                            }*/
+                            /*println("json go to backend --->  $json")
 
                             val requestBody = json.toString()
                                 .toRequestBody("application/json".toMediaTypeOrNull())
+
+                            println("generated code requestBody --->  $requestBody")
+                            Log.d("JSON", requestBody.toString())
+                            Toast.makeText(context,"$requestBody", Toast.LENGTH_LONG).show()
 
                             val call = RetrofitClient.instance.generateCode(requestBody)
                             call.enqueue(object : Callback<ResponseBody> {
@@ -344,7 +405,7 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                                 override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
                                     responseMessage = "🚫 Network error: ${t.message}"
                                 }
-                            })
+                            })*/
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)

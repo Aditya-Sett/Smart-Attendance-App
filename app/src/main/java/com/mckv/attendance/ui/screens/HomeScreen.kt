@@ -1,5 +1,6 @@
 package com.mckv.attendance.ui.screens
 
+import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.graphics.Color
+import com.mckv.attendance.utils.scanForTeacherUuid
 
 // 🔹 Main Home Screen
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,6 +69,7 @@ fun HomeScreen(navController: NavHostController) {
         while (true) {
             getCurrentLocation(context) { lat, lon ->
                 checkForActiveCode(
+                    context = context,
                     department = department,
                     admissionYear = admissionYear,
                     lat = lat,
@@ -196,6 +199,7 @@ fun HomeScreen(navController: NavHostController) {
 
 // 🔹 Check backend for active code
 fun checkForActiveCode(
+    context: Context,
     department: String,
     admissionYear: String,
     lat: Double,
@@ -223,8 +227,18 @@ fun checkForActiveCode(
                 val code = result.optString("code")
                 val subject = result.optString("subject")
                 val expiresAt = result.optLong("expiresAt")
-                if (result.optBoolean("active") && code.isNotBlank()) {
+                val bluetoothUuid = result.optString("bluetoothUuid")
+                /*if (result.optBoolean("active") && code.isNotBlank()) {
                     onFound(code, subject, expiresAt)
+                }*/
+                scanForTeacherUuid(context, bluetoothUuid) { match ->
+                    if (match) {
+                        Log.d("BLE", "✅ Teacher is nearby! UUID matched.")
+                        onFound(code, subject, expiresAt)   // allow dialog to show
+                    } else {
+                        Log.d("BLE", "❌ Teacher NOT nearby. UUID mismatch.")
+                        onError("Teacher not nearby (BLE mismatch)")
+                    }
                 }
             } else onError("Server returned ${response.code()}")
         }
