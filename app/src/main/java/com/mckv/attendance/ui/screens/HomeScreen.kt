@@ -1,8 +1,15 @@
 package com.mckv.attendance.ui.screens
 
+import android.Manifest
+import android.app.Activity
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -34,13 +41,16 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.graphics.Color
+import com.mckv.attendance.utils.ensureBluetoothPermissions
 import com.mckv.attendance.utils.scanForTeacherUuid
 
 // 🔹 Main Home Screen
+@RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavHostController) {
     val context = LocalContext.current
+    val activity = context as Activity
     val studentId = SessionManager.studentId ?: "Unknown"
     val department = SessionManager.department ?: "Unknown"
     val admissionYear = SessionManager.admissionYear ?: "Unknown"
@@ -61,6 +71,34 @@ fun HomeScreen(navController: NavHostController) {
         responseMessage?.let {
             scope.launch { snackbarHostState.showSnackbar(it) }
             responseMessage = null
+        }
+    }
+
+    // Checking whether bluetooth on or off ,, if off then request user to turn on
+    if (!ensureBluetoothPermissions(activity)) {
+        return//@Button     // wait for user to grant permission
+    }
+    val bluetoothAdapter: BluetoothAdapter? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // Android 12+
+        val bluetoothManager = context.getSystemService(BluetoothManager::class.java)
+        bluetoothManager.adapter
+    } else {
+        // Android < 12
+        BluetoothAdapter.getDefaultAdapter()
+    }
+
+    if (bluetoothAdapter == null) {
+        println ("Device does NOT support Bluetooth")
+        return//@Button
+    } else {
+        if (bluetoothAdapter.isEnabled) {
+            // Bluetooth is ON
+            println("Bluetooth is on")
+        } else {
+            // Bluetooth is OFF
+            val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            activity.startActivityForResult(intent, 1001)
+            return//@Button
         }
     }
 

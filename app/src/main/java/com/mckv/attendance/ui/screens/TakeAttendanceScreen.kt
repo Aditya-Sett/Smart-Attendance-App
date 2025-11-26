@@ -4,7 +4,10 @@ import com.mckv.attendance.utils.startBleAdvertising
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
 import android.os.Build
@@ -49,6 +52,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.sp
 import com.mckv.attendance.R
+import com.mckv.attendance.utils.ensureBluetoothPermissions
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -318,6 +322,34 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                             if (wifiFingerprint.length() == 0) {
                                 Toast.makeText(context, "No Wi-Fi networks found. Try again or enable Wi-Fi scanning.", Toast.LENGTH_LONG).show()
                                 return@Button
+                            }
+
+                            // Checking whether bluetooth on or off ,, if off then request user to turn on
+                            if (!ensureBluetoothPermissions(activity)) {
+                                return@Button     // wait for user to grant permission
+                            }
+                            val bluetoothAdapter: BluetoothAdapter? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                // Android 12+
+                                val bluetoothManager = context.getSystemService(BluetoothManager::class.java)
+                                bluetoothManager.adapter
+                            } else {
+                                // Android < 12
+                                BluetoothAdapter.getDefaultAdapter()
+                            }
+
+                            if (bluetoothAdapter == null) {
+                                println ("Device does NOT support Bluetooth")
+                                return@Button
+                            } else {
+                                if (bluetoothAdapter.isEnabled) {
+                                    // Bluetooth is ON
+                                    println("Bluetooth is on")
+                                } else {
+                                    // Bluetooth is OFF
+                                    val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                                    activity.startActivityForResult(intent, 1001)
+                                    return@Button
+                                }
                             }
 
                             startBleAdvertising(

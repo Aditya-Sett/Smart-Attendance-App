@@ -12,6 +12,7 @@ import android.bluetooth.le.*
 import androidx.compose.material3.*
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
@@ -176,4 +177,23 @@ fun scanForTeacherUuid(
         scanner.stopScan(callback)
         if (!matchFound) onResult(false)
     }, 5000)
+}
+
+fun ensureBluetoothPermissions(activity: Activity): Boolean {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val permissions = arrayOf(
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_SCAN
+        )
+
+        val missing = permissions.any {
+            ActivityCompat.checkSelfPermission(activity, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missing) {
+            ActivityCompat.requestPermissions(activity, permissions, 2001)
+            return false   // stop, wait for permission
+        }
+    }
+    return true
 }
