@@ -43,6 +43,7 @@ import com.mckv.attendance.ui.screens.TeacherScreen
 import com.mckv.attendance.ui.screens.AdminDashboard
 import com.mckv.attendance.ui.screens.ClassroomListScreen
 import com.mckv.attendance.ui.screens.AddClassroomScreen
+import com.mckv.attendance.ui.screens.SplashScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -101,7 +102,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             SmartAttendanceAppTheme {
                 val navController = rememberNavController()
-                NavHost(navController = navController, startDestination = "main_home") {
+                NavHost(navController = navController, startDestination = "splash_screen") {
+
+                    composable("splash_screen") {
+                        SplashScreen(navController)
+                    }
+
                     composable("main_home") {
                         MainHomeScreen(navController)
                     }
@@ -170,7 +176,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestLocationPermission() {
-        Toast.makeText(this,"RequestLocationPermission Hit",Toast.LENGTH_LONG).show()
+//        Toast.makeText(this,"RequestLocationPermission Hit",Toast.LENGTH_LONG).show()
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissionLauncher.launch(
@@ -223,6 +229,7 @@ class MainActivity : ComponentActivity() {
         geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)
             .addOnSuccessListener {
                 Log.d("Geofence", "Geofence added")
+                Toast.makeText(this, " Geofence Added\nLat: 22.842058\n Lon: 88.359271", Toast.LENGTH_LONG).show()
             }
             .addOnFailureListener {
                 Log.e("Geofence", "Error: ${it.message}")

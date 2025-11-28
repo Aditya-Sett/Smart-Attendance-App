@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.navigation.NavController
 import com.mckv.attendance.data.local.SessionManager
+import com.mckv.attendance.data.local.TokenExpiryManager
 import com.mckv.attendance.data.remote.dto.request.LoginRequest
 import com.mckv.attendance.data.remote.RetrofitClient
 import okhttp3.ResponseBody
@@ -49,7 +50,7 @@ fun loginUser(
 
 
 
-                        if (success) {
+                        if (success && token.isNotEmpty()) {
 
                             // Save token to SessionManager (for future API calls)
                             SessionManager.authToken =token
@@ -141,7 +142,8 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
                                 val admissionYear = profileData.optString("admission_year",profileData.optString("admissionYear", ""))
                                 System.out.println("🟩 Extracted admissionYear: '$admissionYear'")
 
-
+                                // ✅ Save complete login session
+                                SessionManager.saveLoginSession(token, role, studentId)
 
                                 // ✅ Save profile data to SessionManager
                                 when (role) {
@@ -154,6 +156,7 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
                                     }
                                     "ROLE_TEACHER" -> {
                                         SessionManager.teacherId = studentId
+                                        SessionManager.department= department
                                     }
                                     "ADMIN" -> {
                                         SessionManager.adminId = studentId
@@ -163,11 +166,19 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
                                     }
                                 }
 
+                                System.out.println("💾 Login session saved - Role: $role, ID: $studentId")
+
                                 // ✅ Navigate based on role
                                 when (role) {
-                                    "ROLE_STUDENT" -> navController.navigate("home")
-                                    "ROLE_TEACHER" -> navController.navigate("teacher")
-                                    "ADMIN" -> navController.navigate("admin_dashboard")
+                                    "ROLE_STUDENT" -> navController.navigate("home") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                    "ROLE_TEACHER" -> navController.navigate("teacher") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                    "ADMIN" -> navController.navigate("admin_dashboard") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
                                     else -> Toast.makeText(context, "⚠ Unknown role", Toast.LENGTH_LONG).show()
                                 }
                             }
@@ -190,4 +201,23 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
             onComplete()
         }
     })
+}
+
+// Add this to your utils package
+fun logoutUser(context: Context, navController: NavController?) {
+
+    // Clear token expiry state
+    TokenExpiryManager.setDialogShowing(false)
+
+
+    // Clear session data
+    SessionManager.clear()
+
+    // Navigate to main home screen and clear back stack
+    navController?.navigate("main_home") {  // Make sure this matches your actual route
+        popUpTo(0) { inclusive = true }
+    }
+
+
+    Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
 }

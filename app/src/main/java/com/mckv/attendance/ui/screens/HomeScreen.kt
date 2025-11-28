@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,14 +35,27 @@ import com.mckv.attendance.utils.getCurrentLocation
 import com.mckv.attendance.utils.getWifiFingerPrint
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.OutlinedButton
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.sp
+import com.mckv.attendance.data.local.TokenExpiryManager
+import com.mckv.attendance.ui.components.common.CommonTopBar
+import com.mckv.attendance.utils.UserInteractionHandler
 import com.mckv.attendance.utils.ensureBluetoothPermissions
+import com.mckv.attendance.utils.interactionDetection
+import com.mckv.attendance.utils.logoutUser
 import com.mckv.attendance.utils.scanForTeacherUuid
 
 // 🔹 Main Home Screen
@@ -63,8 +77,18 @@ fun HomeScreen(navController: NavHostController) {
     var inputCode by remember { mutableStateOf("") }
     var responseMessage by remember { mutableStateOf<String?>(null) }
 
+    // 🔹 Dropdown menu state
+    var showDropdownMenu by remember { mutableStateOf(false) }
+
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // State for showing dialog
+    var showExpiryDialog by remember { mutableStateOf(false) }
+
+    // 🔹 Add User Interaction Handler for Token Expiry Detection
+    UserInteractionHandler(navController = navController)
 
     // 🔹 Show snackbar messages
     LaunchedEffect(responseMessage) {
@@ -185,22 +209,159 @@ fun HomeScreen(navController: NavHostController) {
         )
     }
 
+
+
+//    // Function to check and show dialog
+//    val checkTokenAndShowDialog = {
+//        if (TokenExpiryManager.isTokenExpired() && !showExpiryDialog) {
+//            showExpiryDialog = true
+//            TokenExpiryManager.setDialogShowing(true)
+//        }
+//    }
+//
+//    // Show dialog if token is expired
+//    if (showExpiryDialog) {
+//        AlertDialog(
+//            onDismissRequest = { /* Don't allow dismiss */ },
+//            title = {
+//                Text(
+//                    text = "Session Expired",
+//                    color = MaterialTheme.colorScheme.error
+//                )
+//            },
+//            text = {
+//                Text("Your session has expired. Please login again.")
+//            },
+//            confirmButton = {
+//                Button(
+//                    onClick = {
+//                        showExpiryDialog = false
+//                        TokenExpiryManager.setDialogShowing(false)
+//                        logoutUser(context, navController)
+//                    }
+//                ) {
+//                    Text("OK, Login Again")
+//                }
+//            }
+//        )
+//    }
+
     // 🔹 Main UI
     Scaffold(
+
+        modifier = Modifier.interactionDetection(),
         topBar = {
             Column {
-                TopAppBar(
-                    title = { Text("Smart Attendance") },
-                    actions = {
-                        IconButton(onClick = { /* Profile */ }) {
-                            Icon(Icons.Default.AccountCircle, null)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFF1976D2),
-                        titleContentColor = Color.White
-                    )
+
+                CommonTopBar(
+                    title = "Smart Attendance",
+                    navController = navController
                 )
+
+//                TopAppBar(
+//                    title = { Text("Smart Attendance") },
+//                    actions = {
+//                        // 🔹 Profile Icon with Dropdown Menu
+//                        Box {
+//                            IconButton(
+//                                onClick = { showDropdownMenu = true }
+//                            ) {
+//                                Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+//                            }
+//
+//                            // 🔹 Dropdown Menu
+//                            // 🔹 Dropdown Menu with Attractive Styling
+//                            DropdownMenu(
+//                                expanded = showDropdownMenu,
+//                                onDismissRequest = { showDropdownMenu = false },
+//                                modifier = Modifier
+//                                    .background(
+//                                        color = Color(0xFF1976D2), // Dark blue background
+//                                        shape = RoundedCornerShape(2.dp)
+//                                    )
+//                            ) {
+//                                // 🔹 Profile Info Item
+//                                DropdownMenuItem(
+//                                    text = {
+//                                        Text(
+//                                            text = "Profile",
+//                                            color = Color.White,
+//                                            fontSize = 16.sp,
+//                                            fontWeight = FontWeight.Medium,
+//                                            fontFamily = FontFamily.SansSerif,
+//                                            modifier = Modifier.padding(vertical = 4.dp)
+//                                        )
+//                                    },
+//                                    onClick = {
+//                                        showDropdownMenu = false
+//                                        // You can add navigation to profile screen here
+//                                        Toast.makeText(context, "Profile Info", Toast.LENGTH_SHORT).show()
+//                                    },
+//                                    leadingIcon = {
+//                                        Icon(
+//                                            Icons.Default.Person,
+//                                            contentDescription = "Profile",
+//                                            tint = Color(0xFF64FFDA) // Teal accent color
+//                                        )
+//                                    },
+//                                    colors =  MenuItemColors(
+//                                        textColor = Color.White,
+//                                        disabledTextColor = Color.Gray,
+//                                        leadingIconColor = Color(0xFF64FFDA), // Correct parameter name
+//                                        disabledLeadingIconColor = Color.Gray,
+//                                        trailingIconColor = Color.White,
+//                                        disabledTrailingIconColor = Color.Gray
+//                                    )
+//                                )
+//
+//                                // 🔹 Attractive separator
+//                                Spacer(modifier = Modifier
+//                                    .fillMaxWidth()
+//                                    .height(1.dp)
+//                                    .padding(horizontal = 8.dp)
+//                                    .background(Color(0xFF64FFDA).copy(alpha = 0.3f))
+//                                )
+//
+//                                // 🔹 Logout Item
+//                                DropdownMenuItem(
+//                                    text = {
+//                                        Text(
+//                                            text = "Logout",
+//                                            color = Color(0xFFFF6B6B), // Red color for logout
+//                                            fontSize = 16.sp,
+//                                            fontWeight = FontWeight.Medium,
+//                                            fontFamily = FontFamily.SansSerif,
+//                                            modifier = Modifier.padding(vertical = 4.dp)
+//                                        )
+//                                    },
+//                                    onClick = {
+//                                        showDropdownMenu = false
+//                                        logoutUser(context, navController)
+//                                    },
+//                                    leadingIcon = {
+//                                        Icon(
+//                                            Icons.AutoMirrored.Filled.ExitToApp,
+//                                            contentDescription = "Logout",
+//                                            tint = Color(0xFFFF6B6B) // Red accent color
+//                                        )
+//                                    },
+//                                    colors = MenuItemColors(
+//                                        textColor = Color(0xFFFF6B6B),
+//                                        disabledTextColor = Color.Gray,
+//                                        leadingIconColor = Color(0xFFFF6B6B), // Correct parameter name
+//                                        disabledLeadingIconColor = Color.Gray,
+//                                        trailingIconColor = Color.White,
+//                                        disabledTrailingIconColor = Color.Gray
+//                                    )
+//                                )
+//                            }
+//                        }
+//                    },
+//                    colors = TopAppBarDefaults.topAppBarColors(
+//                        containerColor = Color(0xFF1976D2),
+//                        titleContentColor = Color.White
+//                    )
+//                )
                 Column(
                     Modifier
                         .fillMaxWidth()
