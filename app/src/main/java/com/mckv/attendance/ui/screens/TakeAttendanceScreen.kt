@@ -52,6 +52,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.sp
 import com.mckv.attendance.R
+import com.mckv.attendance.utils.DepartmentAutoComplete
+import com.mckv.attendance.utils.SubjectAutoComplete
 import com.mckv.attendance.utils.ensureBluetoothPermissions
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -250,20 +252,28 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    OutlinedTextField(
+                    /*OutlinedTextField(
                         value = department,
                         onValueChange = { department = it },
                         label = { Text("Department") },
                         leadingIcon = { Icon(Icons.Default.School, contentDescription = null) },
                         modifier = Modifier.fillMaxWidth()
+                    )*/
+                    DepartmentAutoComplete(
+                        department = department,
+                        onDepartmentChange = { department = it }
                     )
 
-                    OutlinedTextField(
+                    /*OutlinedTextField(
                         value = subject,
                         onValueChange = { subject = it },
                         label = { Text("Subject") },
                         leadingIcon = { Icon(Icons.Default.Book, contentDescription = null) },
                         modifier = Modifier.fillMaxWidth()
+                    )*/
+                    SubjectAutoComplete(
+                        subject = subject,
+                        onSubjectChange = { subject = it }
                     )
 
                     // --- Dropdown for Class Name ---
