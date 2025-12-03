@@ -312,11 +312,21 @@ fun HomeScreen(navController: NavHostController) {
                         .background(Color(0xFF2196F3))
                         .padding(16.dp)
                 ) {
-                    Text("Welcome, $studentId", color = Color.White)
-                    Text("Department: $department", color = Color.White)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Left side: Welcome and Department
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Welcome, $studentId", color = Color.White)
+                            Text("Department: $department", color = Color.White)
+                        }
 
-                    // Bluetooth status indicator
-                    BluetoothStatusIndicator()
+                        // Right side: Bluetooth indicator
+                        BluetoothStatusIndicator()
+                    }
                 }
             }
         },
@@ -382,26 +392,27 @@ fun HomeScreen(navController: NavHostController) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 5.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = Color(0xFFFFF3CD)
                         )
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
-                                text = "⚠️ Bluetooth is Disabled",
+                                text = "⚠️ Bluetooth is required for attendance marking",
                                 color = Color(0xFF856404),
-                                fontWeight = FontWeight.Bold
+                                //fontWeight = FontWeight.Normal
+                                fontSize = 12.sp
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            /*Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Bluetooth is required for attendance marking",
                                 color = Color(0xFF856404)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
+                            )*/
+                            Spacer(modifier = Modifier.height(5.dp))
                             Button(
                                 onClick = requestBluetoothEnable,
                                 colors = ButtonDefaults.buttonColors(
@@ -415,17 +426,17 @@ fun HomeScreen(navController: NavHostController) {
                                         strokeWidth = 2.dp,
                                         color = Color.White
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    //Spacer(modifier = Modifier.width(8.dp))
                                 }
                                 Text("Enable Bluetooth")
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
+                            /*Spacer(modifier = Modifier.height(8.dp))
                             OutlinedButton(
                                 onClick = { checkBluetoothStatus() },
                                 enabled = !bluetoothChecking
                             ) {
                                 Text("Check Again")
-                            }
+                            }*/
                         }
                     }
                 }
