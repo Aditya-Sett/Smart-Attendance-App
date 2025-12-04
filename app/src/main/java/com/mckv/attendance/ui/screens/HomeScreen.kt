@@ -35,7 +35,10 @@ import androidx.navigation.NavHostController
 import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.data.remote.RetrofitClient
 import com.mckv.attendance.ui.components.common.CommonTopBar
+import com.mckv.attendance.utils.convertUTCToISTMillis
 import com.mckv.attendance.utils.ensureBluetoothPermissions
+import com.mckv.attendance.utils.formatTimeRemaining
+import com.mckv.attendance.utils.getCurrentISTMillis
 import com.mckv.attendance.utils.getCurrentLocation
 import com.mckv.attendance.utils.getWifiFingerPrint
 import com.mckv.attendance.utils.interactionDetection
@@ -49,6 +52,14 @@ import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 // 🔹 Main Home Screen
 @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
@@ -65,6 +76,15 @@ fun HomeScreen(navController: NavHostController) {
     var activeCode by remember { mutableStateOf<String?>(null) }
     var activeSubject by remember { mutableStateOf<String?>(null) }
     var expiresAt by remember { mutableStateOf<Long?>(null) }
+
+    // Timer states
+    var timeLeft by remember { mutableStateOf<Long?>(null) }
+    var isExpired by remember { mutableStateOf(false) }
+    var showExpiryDialog by remember { mutableStateOf(false) }
+
+    // Add a state to track if we should show "Expired!" and wait before closing
+    var showExpiredInDialog by remember { mutableStateOf(false) }
+
 
     var showDialog by remember { mutableStateOf(false) }
     var inputCode by remember { mutableStateOf("") }
@@ -187,63 +207,202 @@ fun HomeScreen(navController: NavHostController) {
         }
     }
 
-    // 🔹 Code entry dialog
-    if (showDialog) {
+    // 🔹 Timer LaunchedEffect - runs every second
+    // Remove the showExpiredInDialog state since we don't need the 1-second delay anymore
+// var showExpiredInDialog by remember { mutableStateOf(false) } // Remove this
+
+// 🔹 Timer LaunchedEffect - runs every second
+    LaunchedEffect(expiresAt, showDialog) {
+        if (expiresAt != null && expiresAt!! > 0 && showDialog) {
+            while (showDialog) {
+                val currentIST = getCurrentISTMillis()
+                val expiryIST = expiresAt!!
+
+                timeLeft = expiryIST - currentIST
+                isExpired = currentIST >= expiryIST
+
+                if (isExpired) {
+                    // Just update isExpired state, the UI will handle showing OK button
+                    isExpired = true
+                    break // Stop the timer
+                }
+
+                delay(1000L)
+            }
+        }
+    }
+
+    // 🔹 Expiry Alert Dialog
+    // 🔹 Expiry Alert Dialog
+    if (showExpiryDialog) {
         AlertDialog(
             onDismissRequest = {
-                showDialog = false
-                inputCode = ""
+                showExpiryDialog = false
+                // Reset states
+                activeCode = null
+                activeSubject = null
+                expiresAt = null
+                timeLeft = null
+                isExpired = false
             },
             confirmButton = {
                 Button(onClick = {
-                    if (inputCode.length != 4) {
-                        Toast.makeText(context, "Enter a valid 4-digit code", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
+                    showExpiryDialog = false
+                    // Reset states
+                    activeCode = null
+                    activeSubject = null
+                    expiresAt = null
+                    timeLeft = null
+                    isExpired = false
+                }) {
+                    Text("OK")
+                }
+            },
+            title = { Text("Attendance Expired") },
+            text = { Text("The attendance code for $activeSubject has expired.") }
+        )
+    }
 
-                    submitAttendance(
-                        context = context,
-                        studentId = studentId,
-                        department = department,
-                        inputCode = inputCode,
-                        activeCode = activeCode,
-                        onSuccess = {
-                            SessionManager.lastCodeSubmitted = activeCode
-                            responseMessage = "✅ Attendance marked"
-                        },
-                        onFailure = { msg -> responseMessage = msg }
-                    )
-
+    // 🔹 Code entry dialog
+    // 🔹 Code entry dialog
+    if (showDialog && (timeLeft ?: 0 > 0 || isExpired)) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isExpired) { // Only allow dismissal if not expired
                     showDialog = false
                     inputCode = ""
-                }) {
-                    Text("Submit")
+                }
+            },
+            confirmButton = {
+                if (isExpired) {
+                    // Show OK button when expired
+                    Button(
+                        onClick = {
+                            showDialog = false
+                            inputCode = ""
+                            // Also reset states so it doesn't show again
+                            activeCode = null
+                            activeSubject = null
+                            expiresAt = null
+                            timeLeft = null
+                            isExpired = false
+                        }
+                    ) {
+                        Text("OK")
+                    }
+                } else {
+                    // Show Submit button when not expired
+                    Button(
+                        onClick = {
+                            if (inputCode.length != 4) {
+                                Toast.makeText(context, "Enter a valid 4-digit code", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+
+                            submitAttendance(
+                                context = context,
+                                studentId = studentId,
+                                department = department,
+                                inputCode = inputCode,
+                                activeCode = activeCode,
+                                onSuccess = {
+                                    SessionManager.lastCodeSubmitted = activeCode
+                                    responseMessage = "✅ Attendance marked"
+                                    // Close the dialog and reset timer
+                                    showDialog = false
+                                    inputCode = ""
+                                    expiresAt = null
+                                    timeLeft = null
+                                    isExpired = false
+                                },
+                                onFailure = { msg ->
+                                    responseMessage = msg
+                                    showDialog = false
+                                    inputCode = ""
+                                }
+                            )
+                        }
+                    ) {
+                        Text("Submit")
+                    }
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = {
-                    showDialog = false
-                    inputCode = ""
-                }) { Text("Cancel") }
+                // Only show Cancel button when NOT expired
+                if (!isExpired) {
+                    OutlinedButton(
+                        onClick = {
+                            showDialog = false
+                            inputCode = ""
+                        }
+                    ) { Text("Cancel") }
+                }
             },
-            title = { Text("Attendance for $activeSubject") },
+            title = {
+                if (isExpired) {
+                    Text("Attendance Expired", color = Color.Red)
+                } else {
+                    Text("Attendance for $activeSubject")
+                }
+            },
             text = {
                 Column {
-                    expiresAt?.let {
-                        val minutesLeft = ((it - System.currentTimeMillis()) / 60000).coerceAtLeast(0)
-                        Text("Expires in $minutesLeft min")
+                    if (isExpired) {
+                        // Show expired message with OK button
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "⏰",
+                                fontSize = 32.sp,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            Text(
+                                text = "TIME'S UP!",
+                                color = Color.Red,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "Attendance window has expired",
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = "You can no longer submit attendance",
+                                color = Color.Gray,
+                                fontSize = 12.sp
+                            )
+                        }
+                    } else {
+                        // Normal view with timer and input field
+                        timeLeft?.let { remaining ->
+                            if (remaining > 0) {
+                                val minutes = (remaining / 60000).toInt()
+                                val seconds = ((remaining % 60000) / 1000).toInt()
+                                Text(
+                                    text = "Time remaining: ${formatTimeRemaining(minutes, seconds)}",
+                                    color = if (minutes < 1) Color.Red else Color.Unspecified,
+                                    fontWeight = if (minutes < 1) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = inputCode,
+                            onValueChange = { if (it.length <= 4) inputCode = it },
+                            label = { Text("Enter 4-digit Code") },
+                            singleLine = true
+                        )
                     }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = inputCode,
-                        onValueChange = { if (it.length <= 4) inputCode = it },
-                        label = { Text("Enter 4-digit Code") },
-                        singleLine = true
-                    )
                 }
             }
         )
     }
+
 
     // 🔹 Bluetooth Status Indicator
     @Composable
@@ -570,17 +729,32 @@ fun checkForActiveCode(
                 val result = JSONObject(bodyString)
                 val code = result.optString("code")
                 val subject = result.optString("subject")
-                val expiresAt = result.optLong("expiresAt")
+                val expiresAtUTC = result.optString("expiresAt")
                 val bluetoothUuid = result.optString("bluetoothUuid")
 
-                scanForTeacherUuid(context, bluetoothUuid) { match ->
-                    if (match) {
-                        Log.d("BLE", "✅ Teacher is nearby! UUID matched.")
-                        onFound(code, subject, expiresAt)
-                    } else {
-                        Log.d("BLE", "❌ Teacher NOT nearby. UUID mismatch.")
-                        onError("Teacher not nearby (BLE mismatch)")
+                // Convert UTC to IST milliseconds
+                val expiresAtIST = convertUTCToISTMillis(expiresAtUTC)
+
+                Log.d("API Debug", "UTC expiresAt: $expiresAtUTC")
+                Log.d("API Debug", "IST milliseconds: $expiresAtIST")
+
+                if (expiresAtIST > 0) {
+                    // Calculate time left for logging
+                    val currentIST = getCurrentISTMillis()
+                    val timeLeftMillis = expiresAtIST - currentIST
+                    Log.d("Timer", "Time left: ${timeLeftMillis / 1000} seconds")
+
+                    scanForTeacherUuid(context, bluetoothUuid) { match ->
+                        if (match) {
+                            Log.d("BLE", "✅ Teacher is nearby! UUID matched.")
+                            onFound(code, subject, expiresAtIST)
+                        } else {
+                            Log.d("BLE", "❌ Teacher NOT nearby. UUID mismatch.")
+                            onError("Teacher not nearby (BLE mismatch)")
+                        }
                     }
+                } else {
+                    onError("Invalid expiry time format")
                 }
             } else onError("Server returned ${response.code()}")
         }
@@ -589,6 +763,8 @@ fun checkForActiveCode(
         }
     })
 }
+
+
 
 // 🔹 Submit attendance with WiFi fingerprint
 fun submitAttendance(
