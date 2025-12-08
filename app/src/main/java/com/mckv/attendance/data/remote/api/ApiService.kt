@@ -74,4 +74,8 @@ interface ApiService {
         @Path("academicYear") academicYear: String
     ): Call<ResponseBody>
 
+    @POST("api/attendance/attendance_taken_by_teacherid")
+    suspend fun attendanceTakenBySelf(
+        @Body requestBody: RequestBody
+    ): ResponseBody
 }

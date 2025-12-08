@@ -43,6 +43,7 @@ import com.mckv.attendance.ui.screens.TeacherScreen
 import com.mckv.attendance.ui.screens.AdminDashboard
 import com.mckv.attendance.ui.screens.ClassroomListScreen
 import com.mckv.attendance.ui.screens.AddClassroomScreen
+import com.mckv.attendance.ui.screens.AttendanceRecordsScreen
 import com.mckv.attendance.ui.screens.SplashScreen
 
 class MainActivity : ComponentActivity() {
@@ -144,6 +145,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("take_attendance") {
                         TakeAttendanceScreen(navController)
+                    }
+                    composable("attendance_records") {
+                        AttendanceRecordsScreen(navController)
                     }
                     composable("export_attendance") {
                         ExportAttendanceScreen(navController)

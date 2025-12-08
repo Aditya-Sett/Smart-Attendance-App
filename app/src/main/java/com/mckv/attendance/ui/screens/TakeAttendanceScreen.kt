@@ -55,6 +55,7 @@ import com.mckv.attendance.R
 import com.mckv.attendance.utils.DepartmentAutoComplete
 import com.mckv.attendance.utils.SubjectAutoComplete
 import com.mckv.attendance.utils.ensureBluetoothPermissions
+import com.mckv.attendance.utils.getCurrentISTMillis
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -329,10 +330,10 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                             // Build Wi-Fi fingerprint (top 8 APs)
                             val wifiFingerprint = buildWifiFingerprint(context, topN = 8)
 
-                            if (wifiFingerprint.length() == 0) {
+                            /*if (wifiFingerprint.length() == 0) {
                                 Toast.makeText(context, "No Wi-Fi networks found. Try again or enable Wi-Fi scanning.", Toast.LENGTH_LONG).show()
                                 return@Button
-                            }
+                            }*/
 
                             // Checking whether bluetooth on or off ,, if off then request user to turn on
                             if (!ensureBluetoothPermissions(activity)) {
@@ -813,7 +814,14 @@ fun CompactCodeCard(response: String, onClose: () -> Unit) {
         val format = SimpleDateFormat("dd-MM-yyyy hh:mm:ss a", Locale.getDefault())
         val genTime = format.parse(generatedAt)?.time ?: 0L
         val expTime = format.parse(expiresAt)?.time ?: 0L
-        remainingTime = maxOf((expTime - genTime) / 1000, 0)
+        val currentIST = getCurrentISTMillis()
+        //remainingTime = maxOf((expTime - genTime) / 1000, 0)
+        remainingTime = maxOf((expTime - currentIST) / 1000, 0)
+        //Log.d("EXP","$expTime")
+        //Log.d("GEN","$genTime")
+        println("@@@  EXP $expTime")
+        println("@@@ GEN $genTime")
+        println("@@@ currentIST $currentIST")
     }
 
     LaunchedEffect(remainingTime) {
