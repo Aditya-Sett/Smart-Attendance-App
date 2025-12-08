@@ -1,14 +1,17 @@
 package com.mckv.attendance.ui.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -19,6 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,12 +33,14 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.mckv.attendance.data.local.SessionManager
+import com.mckv.attendance.data.local.SessionManager.teacherId
 import com.mckv.attendance.data.remote.RetrofitClient
 import com.mckv.attendance.ui.components.common.CommonTopBar
 import com.mckv.attendance.utils.interactionDetection
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.util.Date
 
 @Composable
 fun AttendanceRecordsScreen(navcontroller : NavController) {
@@ -118,14 +126,14 @@ fun AttendanceRecordsScreen(navcontroller : NavController) {
         }
 
         else -> {
-            AttendanceRecordList(navcontroller,records)
+            teacherId?.let { AttendanceRecordList(it,navcontroller,records) }
         }
     }
 }
 
 //@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun AttendanceRecordList(navcontroller: NavController,records: List<AttendanceRecordItem>) {
+fun AttendanceRecordList(teacherId: String,navcontroller: NavController,records: List<AttendanceRecordItem>) {
     Scaffold(
         modifier = Modifier.interactionDetection(),
         topBar = {
@@ -144,7 +152,11 @@ fun AttendanceRecordList(navcontroller: NavController,records: List<AttendanceRe
         ) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(records) { record ->
-                    AttendanceRecordCard(record)
+                    AttendanceRecordCard(record) {
+                        navcontroller.navigate(
+                            "attendance_details/${teacherId}/${record.code}/${record.generatedAt}/${record.expiresAt}"
+                        )
+                    }
                 }
             }
         }
@@ -153,26 +165,48 @@ fun AttendanceRecordList(navcontroller: NavController,records: List<AttendanceRe
 
 
 @Composable
-fun AttendanceRecordCard(record: AttendanceRecordItem) {
+fun AttendanceRecordCard(record: AttendanceRecordItem, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
             .clickable {
-                // future detail screen
+                onClick()
             },
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(10.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent // Make card transparent
+        )
     ) {
-        Column(Modifier.padding(12.dp)) {
-            Text("Subject: ${record.subject}", fontWeight = FontWeight.Bold)
-            Text("Code: ${record.code}")
-            Text("Department: ${record.department}")
-            Text("Class: ${record.className}")
-            Text("Generated: ${record.generatedAt}")
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFFEFDC90), // Whitish yellow
+                            //Color(0xFFF4F1E8), // Lighter yellow tint
+                            //Color(0xFFF8EED1), // Warm yellow
+                            Color(0xFFF1DD5D)  // Chromish yellow
+                        ),
+                        start = Offset.Infinite, // Top right
+                        end = Offset(0f, Float.POSITIVE_INFINITY) // Bottom left
+
+                    )
+                )
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Text("Subject: ${record.subject}", fontWeight = FontWeight.Bold)
+                Text("Code: ${record.code}")
+                Text("Department: ${record.department}")
+                Text("Class: ${record.className}")
+                Text("Generated: ${record.generatedAt}")
+            }
         }
     }
 }
-
 
 data class AttendanceRecordItem(
     val id: String,

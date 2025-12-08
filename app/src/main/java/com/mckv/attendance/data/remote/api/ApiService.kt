@@ -78,4 +78,8 @@ interface ApiService {
     suspend fun attendanceTakenBySelf(
         @Body requestBody: RequestBody
     ): ResponseBody
+
+    @POST("api/attendance/details")
+    suspend fun getAttendanceDetails(@Body body: RequestBody): ResponseBody
+
 }

@@ -43,6 +43,7 @@ import com.mckv.attendance.ui.screens.TeacherScreen
 import com.mckv.attendance.ui.screens.AdminDashboard
 import com.mckv.attendance.ui.screens.ClassroomListScreen
 import com.mckv.attendance.ui.screens.AddClassroomScreen
+import com.mckv.attendance.ui.screens.AttendanceDetailsScreen
 import com.mckv.attendance.ui.screens.AttendanceRecordsScreen
 import com.mckv.attendance.ui.screens.SplashScreen
 
@@ -143,6 +144,24 @@ class MainActivity : ComponentActivity() {
                     composable("add_schedule") {
                         AddScheduleScreen(navController)
                     }
+                    composable(
+                        route = "attendance_details/{teacherId}/{code}/{gen}/{exp}"
+                    ) { backStack ->
+
+                        val teacherId = backStack.arguments?.getString("teacherId")!!
+                        val code = backStack.arguments?.getString("code")!!
+                        val gen = backStack.arguments?.getString("gen")!!
+                        val exp = backStack.arguments?.getString("exp")!!
+
+                        AttendanceDetailsScreen(
+                            teacherId = teacherId,
+                            code = code,
+                            generatedAt = gen,
+                            expiresAt = exp,
+                            navController = navController
+                        )
+                    }
+
                     composable("take_attendance") {
                         TakeAttendanceScreen(navController)
                     }
