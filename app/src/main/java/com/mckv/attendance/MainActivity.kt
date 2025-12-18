@@ -45,7 +45,11 @@ import com.mckv.attendance.ui.screens.ClassroomListScreen
 import com.mckv.attendance.ui.screens.AddClassroomScreen
 import com.mckv.attendance.ui.screens.AttendanceDetailsScreen
 import com.mckv.attendance.ui.screens.AttendanceRecordsScreen
+import com.mckv.attendance.ui.screens.CurriculumDetailsScreen
+import com.mckv.attendance.ui.screens.CurriculumSummaryScreen
+import com.mckv.attendance.ui.screens.EditCurriculumScreen
 import com.mckv.attendance.ui.screens.SplashScreen
+import com.mckv.attendance.ui.screens.UploadCurriculumScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -137,6 +141,31 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("classroomList") {
                         ClassroomListScreen(navController)
+                    }
+                    composable(
+                        route = "curriculumDetails/{className}/{department}/{effectiveYear}"
+                    ) {
+                        val className = it.arguments?.getString("className") ?: ""
+                        val department = it.arguments?.getString("department") ?: ""
+                        val effectiveYear = it.arguments?.getString("effectiveYear") ?: ""
+
+                        CurriculumDetailsScreen(
+                            className = className,
+                            department = department,
+                            effectiveYear = effectiveYear,
+                            navController = navController
+                        )
+                    }
+
+                    composable("curriculumSummary") {
+                        CurriculumSummaryScreen(navController = navController)
+                    }
+                    composable("uploadCurriculum") {
+                        UploadCurriculumScreen(navController)
+                    }
+                    composable("editCurriculum/{id}") {
+                        val id = it.arguments?.getString("id") ?: ""
+                        EditCurriculumScreen(navController, id)
                     }
                     composable("addClassroom") {
                         AddClassroomScreen(navController)

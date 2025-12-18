@@ -11,6 +11,9 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import com.mckv.attendance.data.remote.dto.request.ClassroomRequest
 import com.mckv.attendance.data.remote.dto.response.ClassroomResponse
+import com.mckv.attendance.ui.screens.UploadedCurriculum
+import retrofit2.http.PUT
+import retrofit2.http.Query
 
 interface ApiService {
     @GET("api/classrooms/details")
@@ -82,4 +85,32 @@ interface ApiService {
     @POST("api/attendance/details")
     suspend fun getAttendanceDetails(@Body body: RequestBody): ResponseBody
 
+    @POST("api/curriculum/upload")
+    suspend fun uploadCurriculum(
+        @Body curriculum: UploadedCurriculum
+    ): Response<ResponseBody>
+
+    @GET("api/curriculum/summary")
+    suspend fun getCurriculumSummary(): Response<ResponseBody>
+
+    @GET("api/curriculum/get")
+    suspend fun getCurriculum(
+        @Query("className") className: String?,
+        @Query("department") department: String?,
+        @Query("effectiveYear") effectiveYear: String?
+    ): Response<ResponseBody>
+
+    @GET("api/curriculum/{id}")
+    suspend fun getCurriculumById(@Path("id") id: String): Response<ResponseBody>
+
+    @PUT("api/curriculum/update/{id}")
+    suspend fun updateCurriculum(
+        @Path("id") id: String,
+        @Body requestBody: RequestBody
+    ): Response<ResponseBody>
+
+    @POST("api/curriculum/new")
+    suspend fun createCurriculum(
+        @Body requestBody: RequestBody
+    ): Response<ResponseBody>
 }
