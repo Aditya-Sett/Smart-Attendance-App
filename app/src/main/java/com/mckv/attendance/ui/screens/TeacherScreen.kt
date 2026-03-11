@@ -6,18 +6,37 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +58,7 @@ import com.mckv.attendance.ui.components.common.CommonTopBar
 import com.mckv.attendance.utils.UserInteractionHandler
 import com.mckv.attendance.utils.interactionDetection
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeacherScreen(navController: NavHostController) {
 
@@ -48,6 +68,9 @@ fun TeacherScreen(navController: NavHostController) {
     // State for selected tab
     var selectedTab by remember { mutableStateOf(0) } // 0 = Attendance, 1 = Schedule
 
+    // State for three-dot menu expansion
+    var expanded by remember { mutableStateOf(false) }
+
     // 🔹 Add User Interaction Handler for Token Expiry Detection
     UserInteractionHandler(navController = navController)
 
@@ -55,72 +78,295 @@ fun TeacherScreen(navController: NavHostController) {
         modifier = Modifier.interactionDetection(),
         topBar = {
             Column {
+                // CommonTopBar without the three-dot menu
                 CommonTopBar(
                     title = "Smart Attendance",
                     navController = navController
                 )
+
+                // Welcome Section with three-dot menu (Like UTS top section)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF2196F3))
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Teacher info column
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Welcome, $teacherId",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Department: $department",
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                    }
+                    if (SessionManager.userRole == "HOD") { // You'll need to add this to SessionManager
+                        Card(
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .clickable { navController.navigate("hod_controls") },
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFFFD700) // Gold color for distinction
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "HOD Controls",
+                                    tint = Color(0xFF1E3A8A), // Dark blue for contrast
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "HOD",
+                                    color = Color(0xFF1E3A8A),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // Three-dot menu
+                    Box {
+                        IconButton(
+                            onClick = { expanded = true },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        // Dropdown menu with dynamic content based on selected tab
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier
+                                .background(Color.White)
+                                .padding(vertical = 4.dp)
+                        ) {
+                            // Show different menu items based on selected tab
+                            if (selectedTab == 0) {
+                                // Attendance Tab Menu Items
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Export All Records",
+                                            color = Color.Black
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
+                                        navController.navigate("export_all_attendance")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Download,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2196F3)
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Attendance Statistics",
+                                            color = Color.Black
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
+                                        navController.navigate("attendance_stats")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.ShowChart,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2196F3)
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Bulk Consider Absence",
+                                            color = Color.Black
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
+                                        navController.navigate("bulk_consider_absence")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Group,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2196F3)
+                                        )
+                                    }
+                                )
+                            } else {
+                                // Schedule Tab Menu Items - Now with Add, Edit, Delete
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "My Schedule",
+                                            color = Color.Black
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
+                                        navController.navigate("my_schedule")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Schedule,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2196F3)
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Add New Schedule",
+                                            color = Color.Black
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
+                                        navController.navigate("add_schedule")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Add,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2196F3)
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Edit Schedule",
+                                            color = Color.Black
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
+                                        // TODO: Navigate to Edit Schedule screen
+                                        navController.navigate("edit_schedule")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2196F3)
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Delete Schedule",
+                                            color = Color.Black
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
+                                        // TODO: Navigate to Delete Schedule screen
+                                        navController.navigate("delete_schedule")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2196F3)
+                                        )
+                                    }
+                                )
+                                Divider(
+                                    color = Color.LightGray,
+                                    thickness = 1.dp,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                                // Additional useful schedule options
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Calendar View",
+                                            color = Color.Black
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
+                                        navController.navigate("calendar_view")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.CalendarMonth,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2196F3)
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Tabs Section
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF2CA0EE))
+                        .padding(start = 0.dp, top = 0.dp, end = 0.dp, bottom = 2.dp)
+                ) {
+                    ManagementTabsSection(
+                        selectedTab = selectedTab,
+                        onTabSelected = { tabIndex ->
+                            selectedTab = tabIndex
+                            // Close menu when switching tabs
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     ) { innerPadding ->
+        // Content Section
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Welcome Section (Like UTS top section)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF2196F3))
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Welcome, $teacherId",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Department: $department",
-                    color = Color.White,
-                    fontSize = 14.sp
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF2CA0EE))
-                    .padding(start = 0.dp, top = 0.dp, end = 0.dp, bottom = 2.dp)
-            ) {
-                // Using the new ManagementTabsSection instead of the old Row
-                ManagementTabsSection(
-                    selectedTab = selectedTab,
-                    onTabSelected = { tabIndex -> selectedTab = tabIndex }
-                )
-            }
-
-            // Content Section with title (Like UTS "NORMAL BOOKING" section)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    //.background(Color(0xFFD51111))
                     .padding(horizontal = 16.dp)
             ) {
-                // Section Title (Like UTS "NORMAL BOOKING")
-                /*Text(
-                    text = if (selectedTab == 0) "ATTENDANCE OPERATIONS" else "SCHEDULE OPERATIONS",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2196F3),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 24.dp, bottom = 16.dp)
-                )*/
-
                 // Content based on selected tab
                 when (selectedTab) {
                     0 -> AttendanceManagementSection(navController)
-                    1 -> ScheduleManagementSection(navController)
+                    1 -> ScheduleManagementSection(navController) // Now free for other work
                 }
             }
         }
@@ -140,9 +386,7 @@ fun ManagementTabsSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            //.padding(vertical = 8.dp)
             .background(Color.Transparent),
-            //.padding(horizontal = 8.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         tabs.forEachIndexed { index, tab ->
@@ -186,7 +430,6 @@ fun ManagementTabCompact(
 
 data class TabItem(val title: String, val icon: ImageVector)
 
-// The rest of your composables remain the same
 @Composable
 fun ManagementTab(
     title: String,
@@ -286,39 +529,38 @@ fun AttendanceManagementSection(navController: NavHostController) {
 
 @Composable
 fun ScheduleManagementSection(navController: NavHostController) {
+    // This space is now free for other work
+    // You can add any other content here like:
+    // - Schedule calendar view
+    // - Upcoming schedule list
+    // - Schedule statistics
+    // - etc.
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Button(
-            onClick = {
-                navController.navigate("add_schedule")
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text("Add New Schedule")
-        }
+        Text(
+            text = "Schedule Management",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF2196F3)
+        )
 
-        Button(
-            onClick = { /* TODO: Navigate to Edit Schedule screen */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text("Edit Schedule")
-        }
+        Text(
+            text = "Use the three-dot menu (⋮) in the top-right corner\nto manage your schedules",
+            fontSize = 16.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(top = 16.dp)
+        )
 
-        Button(
-            onClick = { /* TODO: Navigate to Delete Schedule screen */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text("Delete Schedule")
-        }
+        // You can add more content here as needed
+        // For example:
+        // - Upcoming schedules list
+        // - Schedule calendar
+        // - Quick stats
     }
 }

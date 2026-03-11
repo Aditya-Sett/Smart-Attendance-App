@@ -15,6 +15,7 @@ val localProperties = Properties().apply {
 
 val baseUrl: String = localProperties.getProperty("BASE_URL") ?: ""
 val baseAuthUrl:String= localProperties.getProperty("BASE_AUTH_URL") ?: ""
+val baseRoleUrl:String= localProperties.getProperty("BASE_ROLE_URL") ?: ""
 
 android {
     namespace = "com.mckv.attendance"
@@ -41,6 +42,11 @@ android {
         buildConfigField("String",
             "BASE_AUTH_URL",
             "\"$baseAuthUrl\""
+        )
+
+        buildConfigField("String",
+            "BASE_ROLE_URL",
+            "\"$baseRoleUrl\""
         )
     }
 

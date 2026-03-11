@@ -48,6 +48,8 @@ import com.mckv.attendance.ui.screens.AttendanceRecordsScreen
 import com.mckv.attendance.ui.screens.CurriculumDetailsScreen
 import com.mckv.attendance.ui.screens.CurriculumSummaryScreen
 import com.mckv.attendance.ui.screens.EditCurriculumScreen
+import com.mckv.attendance.ui.screens.HodControlsScreen
+import com.mckv.attendance.ui.screens.MyScheduleScreen
 import com.mckv.attendance.ui.screens.SplashScreen
 import com.mckv.attendance.ui.screens.UploadCurriculumScreen
 
@@ -162,6 +164,12 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("uploadCurriculum") {
                         UploadCurriculumScreen(navController)
+                    }
+                    composable("hod_controls") {
+                        HodControlsScreen(navController)
+                    }
+                    composable("my_schedule") {
+                        MyScheduleScreen(navController)
                     }
                     composable("editCurriculum/{id}") {
                         val id = it.arguments?.getString("id") ?: ""

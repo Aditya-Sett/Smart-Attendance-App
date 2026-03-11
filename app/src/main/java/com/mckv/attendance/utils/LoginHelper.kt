@@ -12,6 +12,9 @@ import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import com.mckv.attendance.data.local.Permission
+import com.mckv.attendance.data.local.PermissionManager
+import com.mckv.attendance.data.remote.api.RolePermissionApiService
 
 fun loginUser(
     request: LoginRequest,
@@ -57,6 +60,8 @@ fun loginUser(
 
                             // Now fetch profile data using the token
                             fetchUserProfile(token,id, context, navController, onComplete)
+                            System.out.println(SessionManager.userRole)
+                            fetchPermissionsForRole(SessionManager.userRole, context, navController, onComplete)
 
                             //SessionManager.teacherId = id // ✅ Store ID globally
                             // ✅ Save to SessionManager based on role
@@ -109,6 +114,7 @@ fun loginUser(
             onComplete()
         }
 
+
         override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
             System.out.println("🚫 Failure: ${t.message}")
             Toast.makeText(context, "🚫 Network error: ${t.message}", Toast.LENGTH_LONG).show()
@@ -140,6 +146,13 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
                                 val department = profileData.optString("department")
                                 val studentId = profileData.optString("studentId")
                                 val admissionYear = profileData.optString("admission_year",profileData.optString("admissionYear", ""))
+                                /*val permissionsJson = profileData.getJSONArray("permissions")
+                                val permissionsList = mutableListOf<String>()
+                                for (i in 0 until permissionsJson.length()) {
+                                    permissionsList.add(permissionsJson.getString(i))
+                                }
+                                PermissionManager.setPermissions(permissionsList)*/
+                                //val hod = "HOD" // JUST FOR TEMPORARY
                                 System.out.println("🟩 Extracted admissionYear: '$admissionYear'")
 
                                 // ✅ Save complete login session
@@ -157,6 +170,7 @@ private fun fetchUserProfile(token: String,id: String, context: Context, navCont
                                     "ROLE_TEACHER" -> {
                                         SessionManager.teacherId = studentId
                                         SessionManager.department= department
+                                        //SessionManager.userRole = hod // JUST FOR TEMPORARY
                                     }
                                     "ADMIN" -> {
                                         SessionManager.adminId = studentId
@@ -220,4 +234,78 @@ fun logoutUser(context: Context, navController: NavController?) {
 
 
     Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
+}
+
+private fun fetchPermissionsForRole(
+    userRole: String?,
+    context: Context,
+    navController: NavController,
+    onComplete: () -> Unit
+) {
+
+    if (userRole.isNullOrEmpty()) {
+        System.out.println("⚠ Role is null, cannot fetch permissions")
+        return
+    }
+
+    val call = RetrofitClient.rolePermissionInstance
+        .getAllPermissionForRole(userRole, "android-secret")
+
+    call.enqueue(object : Callback<ResponseBody> {
+
+        override fun onResponse(
+            call: Call<ResponseBody>,
+            response: Response<ResponseBody>
+        ) {
+
+            if (response.isSuccessful) {
+
+                val bodyString = response.body()?.string()
+
+                if (bodyString != null) {
+                    try {
+
+                        val json = JSONObject(bodyString)
+                        val success = json.optBoolean("success")
+
+                        if (success) {
+
+                            val permissionsArray = json.getJSONArray("data")
+
+                            val permissionsList = mutableListOf<String>()
+
+                            for (i in 0 until permissionsArray.length()) {
+
+                                val permissionObj = permissionsArray.getJSONObject(i)
+
+                                val permissionName =
+                                    permissionObj.optString("permission")
+
+                                permissionsList.add(permissionName)
+                            }
+
+                            // Save permissions in PermissionManager
+                            PermissionManager.setPermissions(permissionsList)
+
+                            System.out.println("✅ Permissions Loaded: $permissionsList")
+
+                        } else {
+                            System.out.println("❌ Permission API returned success=false")
+                        }
+
+                    } catch (e: Exception) {
+                        System.out.println("❌ Permission Parsing Error: ${e.message}")
+                    }
+                }
+
+            } else {
+                System.out.println("❌ Permission API Error: ${response.code()}")
+            }
+        }
+
+        override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+
+            System.out.println("🚫 Permission API Failure: ${t.message}")
+        }
+    })
 }

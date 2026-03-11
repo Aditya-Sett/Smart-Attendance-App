@@ -7,11 +7,13 @@ import okhttp3.logging.HttpLoggingInterceptor
 import com.mckv.attendance.BuildConfig
 import com.mckv.attendance.data.remote.api.ApiService
 import com.mckv.attendance.data.remote.api.AuthApiService
+import com.mckv.attendance.data.remote.api.RolePermissionApiService
 
 
 object RetrofitClient {
     private const val BASE_URL = BuildConfig.BASE_URL
     private const val BASE_AUTH_URL=BuildConfig.BASE_AUTH_URL;
+    private const val BASE_ROLE_URL=BuildConfig.BASE_ROLE_URL;
 
     // 1. Create a logging interceptor
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
@@ -53,6 +55,11 @@ object RetrofitClient {
     // Auth API service - corrected to use AuthApiService interface
     val authInstance: AuthApiService by lazy {
         createRetrofit(BASE_AUTH_URL).create(AuthApiService::class.java)
+    }
+
+    // Role Permission Api Service
+    val rolePermissionInstance: RolePermissionApiService by lazy {
+        createRetrofit(BASE_ROLE_URL).create(RolePermissionApiService::class.java)
     }
 
     // Helper function to avoid code duplication

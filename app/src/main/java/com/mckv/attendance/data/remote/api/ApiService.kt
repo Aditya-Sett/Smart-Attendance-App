@@ -113,4 +113,9 @@ interface ApiService {
     suspend fun createCurriculum(
         @Body requestBody: RequestBody
     ): Response<ResponseBody>
+
+    @GET("schedule/teacher/{teacherId}")
+    suspend fun getTeacherSchedule(
+        @Path("teacherId") teacherId: String
+    ): Response<ResponseBody>
 }
