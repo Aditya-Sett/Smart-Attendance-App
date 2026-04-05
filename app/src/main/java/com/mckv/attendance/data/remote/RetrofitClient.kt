@@ -1,13 +1,14 @@
 package com.mckv.attendance.data.remote
 
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import com.mckv.attendance.BuildConfig
-import com.mckv.attendance.data.remote.api.ApiService
+import com.mckv.attendance.data.remote.api.AttendanceService
 import com.mckv.attendance.data.remote.api.AuthApiService
 import com.mckv.attendance.data.remote.api.RolePermissionApiService
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 
 object RetrofitClient {
@@ -22,10 +23,14 @@ object RetrofitClient {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    // 2. Attach the logging interceptor to OkHttpClient
     private val client = OkHttpClient.Builder()
+        .addInterceptor ( loggingInterceptor )
         .addInterceptor(loggingInterceptor)
+        .connectTimeout(30, TimeUnit.SECONDS)   // time to establish connection
+        .readTimeout(30, TimeUnit.SECONDS)      // time to wait for response
+        .writeTimeout(30, TimeUnit.SECONDS)     // time to send request
         .build()
+
 
 //    // 3. Use the custom client in Retrofit builder
 //    val instance: ApiService by lazy {
@@ -48,8 +53,8 @@ object RetrofitClient {
 //    }
 
     // Main API service
-    val instance: ApiService by lazy {
-        createRetrofit(BASE_URL).create(ApiService::class.java)
+    val instance: AttendanceService by lazy {
+        createRetrofit(BASE_URL).create(AttendanceService::class.java)
     }
 
     // Auth API service - corrected to use AuthApiService interface

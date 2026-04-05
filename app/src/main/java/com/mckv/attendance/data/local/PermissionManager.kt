@@ -1,41 +1,36 @@
 package com.mckv.attendance.data.local
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 
 object PermissionManager {
 
-    private val userPermissions = mutableSetOf<String>()
+    private lateinit var preferences: SharedPreferences
 
+    private const val PREF_NAME = "proxino_permission_prefs"
+    private const val KEY_PERMISSIONS = "user_permissions"
+
+    fun init(context: Context) {
+        preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    }
+
+    //SET PERMISSION
     fun setPermissions(permissions: List<String>) {
+        preferences.edit().putStringSet(KEY_PERMISSIONS, permissions.toSet()).apply()
+    }
 
-        userPermissions.clear()
-
-        permissions.forEach {
-            userPermissions.add(it)
-        }
-
-        logPermissions()
+    fun getPermissions(): List<String> {
+        return preferences.getStringSet(KEY_PERMISSIONS, emptySet())?.toList() ?: emptyList()
     }
 
     fun hasPermission(permission: String): Boolean {
-        return userPermissions.contains(permission)
+        return preferences
+            .getStringSet(KEY_PERMISSIONS, emptySet())
+            ?.contains(permission) == true
     }
 
     fun clearPermissions() {
-        userPermissions.clear()
-    }
-
-    fun logPermissions() {
-
-        if (userPermissions.isEmpty()) {
-            Log.d("PermissionManager", "No permissions stored")
-            return
-        }
-
-        Log.d("PermissionManager", "Stored Permissions:")
-
-        userPermissions.forEach {
-            Log.d("PermissionManager", it)
-        }
+        preferences.edit().clear().apply()
     }
 }

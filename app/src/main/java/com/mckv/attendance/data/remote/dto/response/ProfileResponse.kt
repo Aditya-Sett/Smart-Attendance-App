@@ -1,14 +1,10 @@
 package com.mckv.attendance.data.remote.dto.response
 
+import com.mckv.attendance.data.model.UserDetails
 
-data class LoginResponse(
+data class ProfileResponse(
     val success: Boolean,
     val message: String,
-    val data: LoginData?,
+    val data: UserDetails?,
     val timeStamp: String
-)
-
-data class LoginData(
-    val token: String,
-    val role: List<String>
 )

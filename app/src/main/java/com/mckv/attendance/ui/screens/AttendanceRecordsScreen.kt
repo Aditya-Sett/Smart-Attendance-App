@@ -1,6 +1,5 @@
 package com.mckv.attendance.ui.screens
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,16 +29,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 //import androidx.compose.runtime.remember
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import com.mckv.attendance.data.local.SessionManager
-import com.mckv.attendance.data.local.SessionManager.teacherId
 import com.mckv.attendance.data.remote.RetrofitClient
 import com.mckv.attendance.ui.components.common.CommonTopBar
 import com.mckv.attendance.utils.interactionDetection
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.util.Date
 
 @Composable
 fun AttendanceRecordsScreen(navcontroller : NavController) {
@@ -49,8 +44,9 @@ fun AttendanceRecordsScreen(navcontroller : NavController) {
     var error by remember { mutableStateOf<String?>(null) }
     var records by remember { mutableStateOf<List<AttendanceRecordItem>>(emptyList()) }
 
+    val teacherId = SessionManager.userDetails?.userId
+
     LaunchedEffect(Unit) {
-        val teacherId = SessionManager.teacherId
 
         val json = JSONObject().apply {
             put("teacherId", teacherId)

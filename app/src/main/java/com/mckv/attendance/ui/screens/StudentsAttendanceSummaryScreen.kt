@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.mckv.attendance.data.remote.api.ApiService
+import com.mckv.attendance.data.remote.api.AttendanceService
 import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.Call
@@ -31,7 +31,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun StudentsAttendanceSummaryScreen(apiService: ApiService, navController: NavHostController) {
+fun StudentsAttendanceSummaryScreen(apiService: AttendanceService, navController: NavHostController) {
     val context = LocalContext.current
     var department by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }

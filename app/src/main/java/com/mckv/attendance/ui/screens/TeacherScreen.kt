@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
@@ -62,8 +61,9 @@ import com.mckv.attendance.utils.interactionDetection
 @Composable
 fun TeacherScreen(navController: NavHostController) {
 
-    val teacherId = SessionManager.teacherId ?: "Unknown"
-    val department = SessionManager.department ?: "Not Specified"
+    val teacherId = SessionManager.userDetails?.userId ?: "Unknown"
+    val department = SessionManager.userDetails?.department ?: "Not Specified"
+    val roles= SessionManager.userDetails?.role?: emptyList()
 
     // State for selected tab
     var selectedTab by remember { mutableStateOf(0) } // 0 = Attendance, 1 = Schedule
@@ -109,7 +109,7 @@ fun TeacherScreen(navController: NavHostController) {
                             fontSize = 14.sp
                         )
                     }
-                    if (SessionManager.userRole == "HOD") { // You'll need to add this to SessionManager
+                    if (roles.contains("HOD")) { // You'll need to add this to SessionManager
                         Card(
                             modifier = Modifier
                                 .padding(end = 8.dp)

@@ -36,6 +36,7 @@ data class DropdownMenuItem(
 fun CommonTopBar(
     title: String,
     navController: NavController? = null,
+    currentRoute: String? = null,
     dropdownItems: List<DropdownMenuItem> = emptyList(),
     containerColor: Color = Color(0xFF1976D2),
     titleColor: Color = Color.White,
@@ -45,18 +46,19 @@ fun CommonTopBar(
     val context = LocalContext.current
 
     // Default dropdown items if none provided
-    val defaultDropdownItems = remember {
-        listOf(
-            DropdownMenuItem(
-                text = "Profile",
-                onClick = {
-                    Toast.makeText(context, "Profile Info", Toast.LENGTH_SHORT).show()
-                    // Add navigation logic here if needed
-                    // navController?.navigate("profile_route")
-                },
-                leadingIcon = Icons.Default.Person,
-                iconTint = Color(0xFF64FFDA)
-            ),
+    val defaultDropdownItems = remember(currentRoute) {
+        listOfNotNull(
+            // ✅ Show Profile ONLY if not already on Profile screen
+            if (currentRoute != "profile") {
+                DropdownMenuItem(
+                    text = "Profile",
+                    onClick = {
+                        navController?.navigate("profile")
+                    },
+                    leadingIcon = Icons.Default.Person,
+                    iconTint = Color(0xFF64FFDA)
+                )
+            } else null,
             DropdownMenuItem(
                 text = "Logout",
                 onClick = {

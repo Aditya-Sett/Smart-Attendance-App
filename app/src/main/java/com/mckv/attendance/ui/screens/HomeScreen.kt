@@ -23,16 +23,14 @@ import androidx.compose.ui.graphics.Color
 //import androidx.compose.ui.graphics.drawscope.EmptyCanvas.drawCircle
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
 import com.mckv.attendance.data.local.SessionManager
+import com.mckv.attendance.data.local.AttendanceManager
 import com.mckv.attendance.data.remote.RetrofitClient
 import com.mckv.attendance.ui.components.common.CommonTopBar
 import com.mckv.attendance.utils.convertUTCToISTMillis
@@ -52,14 +50,6 @@ import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
 
 // 🔹 Main Home Screen
 @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
@@ -68,9 +58,9 @@ import java.util.TimeZone
 fun HomeScreen(navController: NavHostController) {
     val context = LocalContext.current
     val activity = context as Activity
-    val studentId = SessionManager.studentId ?: "Unknown"
-    val department = SessionManager.department ?: "Unknown"
-    val admissionYear = SessionManager.admissionYear ?: "Unknown"
+    val studentId = SessionManager.userDetails?.userId ?: "Unknown"
+    val department = SessionManager.userDetails?.department ?: "Unknown"
+    val admissionYear = SessionManager.userDetails?.studentProfile?.admissionYear ?: "Unknown"
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var activeCode by remember { mutableStateOf<String?>(null) }
@@ -184,7 +174,7 @@ fun HomeScreen(navController: NavHostController) {
                         lat = lat,
                         lon = lon,
                         onFound = { code, subject, expiry ->
-                            if (code != SessionManager.lastCodeSubmitted) {
+                            if (code != AttendanceManager.lastCodeSubmitted) {
                                 activeCode = code
                                 activeSubject = subject
                                 expiresAt = expiry
@@ -306,7 +296,7 @@ fun HomeScreen(navController: NavHostController) {
                                 inputCode = inputCode,
                                 activeCode = activeCode,
                                 onSuccess = {
-                                    SessionManager.lastCodeSubmitted = activeCode
+                                    AttendanceManager.lastCodeSubmitted = activeCode
                                     responseMessage = "✅ Attendance marked"
                                     // Close the dialog and reset timer
                                     showDialog = false

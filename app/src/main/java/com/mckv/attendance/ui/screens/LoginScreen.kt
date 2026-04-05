@@ -58,7 +58,7 @@ import androidx.compose.ui.platform.LocalDensity
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(navController: NavController, roleFromNav: String) {
+fun LoginScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -303,16 +303,16 @@ fun LoginScreen(navController: NavController, roleFromNav: String) {
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Forgot password
-                    Text(
-                        text = "Forgot Password?",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .clickable {
-                                // Navigate to forgot password screen
-                            }
-                    )
+//                    Text(
+//                        text = "Forgot Password?",
+//                        color = MaterialTheme.colorScheme.primary,
+//                        style = MaterialTheme.typography.bodySmall,
+//                        modifier = Modifier
+//                            .align(Alignment.End)
+//                            .clickable {
+//                                // Navigate to forgot password screen
+//                            }
+//                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -347,7 +347,7 @@ fun LoginScreen(navController: NavController, roleFromNav: String) {
                             keyboardController?.hide()
                             focusManager.clearFocus()
 
-                            val request = LoginRequest(username, password, role = roleFromNav)
+                            val request = LoginRequest(username, password)
                             loading = true
                             errorMessage = ""
 

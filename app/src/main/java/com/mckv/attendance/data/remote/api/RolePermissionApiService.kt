@@ -8,12 +8,13 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface RolePermissionApiService {
 
-    @GET("api/rolePermission/{role}/permission")
-    fun getAllPermissionForRole(
-        @Path("role") role: String,
+    @GET("api/role/permissions")
+    fun getAllPermissionForRoles(
+        @Query("roles") roles: List<String>,
         @Header("X-INTERNAL-SECRET") secret: String
     ): Call<ResponseBody>
 }

@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mckv.attendance.data.remote.api.ApiService
+import com.mckv.attendance.data.remote.api.AttendanceService
 import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.Call
@@ -25,7 +25,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 fun AttendanceSummaryScreen(
     studentId: String,
     department: String,
-    apiService: ApiService
+    apiService: AttendanceService
 
 ) {
     var attendanceData by remember { mutableStateOf<Map<String, Triple<Int, Int, Int>>?>(null) }

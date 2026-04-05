@@ -15,7 +15,7 @@ import com.mckv.attendance.ui.screens.UploadedCurriculum
 import retrofit2.http.PUT
 import retrofit2.http.Query
 
-interface ApiService {
+interface AttendanceService {
     @GET("api/classrooms/details")
     suspend fun getClassrooms(): Response<List<ClassroomResponse>>
 

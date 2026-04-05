@@ -1,11 +1,6 @@
 package com.mckv.attendance.data.local
 
-import android.content.Context
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
-import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.utils.JwtUtils
-import kotlinx.coroutines.delay
 
 object TokenExpiryManager {
     private var isDialogShowing = false

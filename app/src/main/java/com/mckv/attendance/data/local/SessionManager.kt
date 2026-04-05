@@ -2,129 +2,67 @@ package com.mckv.attendance.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.gson.Gson
+import com.mckv.attendance.data.local.PermissionManager.clearPermissions
+import com.mckv.attendance.data.model.UserDetails
 import com.mckv.attendance.utils.JwtUtils
 
 object SessionManager {
-    private lateinit var preferences: SharedPreferences
-    private const val PREF_NAME = "attendance_pref"
+    //SHARED PREFERENCES
+    private lateinit var prefs: SharedPreferences
+    //GSON
+    private val gson= Gson()
 
-    fun init(context: Context) {
-        preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    private const val PREF_NAME= "proxino_session_prefs"
+    private const val KEY_TOKEN = "auth_token"
+    private const val KEY_USER_JSON = "user_details_json"
+    private const val KEY_IS_LOGGED_IN = "is_logged_in"
+
+    //INITIALIZE OF SHARED PREFERENCES AS LATE INIT, MODE_PRIVATE ENABLE ONLY THIS APP TO USE THE STORAGE NAMED proxino_prefs
+    //PREVENTING OTHER APPS TO USE THIS STORAGE
+    fun init(context: Context){
+        prefs= context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     }
 
+    //AUTHENTICATION SECTION
     var authToken: String?
-        get()= preferences.getString("authToken",null)
-        set(value)= preferences.edit().putString("authToken",value).apply()
+        get() = prefs.getString(KEY_TOKEN, null)
 
-    val isLoggedIn: Boolean
-        get() = preferences.getBoolean("isLoggedIn", false) &&
-                !isTokenExpired() &&
-                !authToken.isNullOrEmpty()
+        set(value) = prefs.edit().putString(KEY_TOKEN, value).apply()
 
-    // Add login state tracking
-//    var isLoggedIn: Boolean
-//        get() = preferences.getBoolean("isLoggedIn", false)
-//        set(value) = preferences.edit().putBoolean("isLoggedIn", value).apply()
+    //CHECK USER LOGIN STATUS
+    var isLoggedIn: Boolean
+        get() = prefs.getBoolean(KEY_IS_LOGGED_IN, false) && !isTokenExpired()
 
-    // Add user role tracking
-    var userRole: String?
-        get() = preferences.getString("userRole", null)
-        set(value) = preferences.edit().putString("userRole", value).apply()
+        private set(value) = prefs.edit().putBoolean(KEY_IS_LOGGED_IN, value).apply()
 
-    // Add user ID tracking (common for all roles)
-    var userId: String?
-        get() = preferences.getString("userId", null)
-        set(value) = preferences.edit().putString("userId", value).apply()
-
-
-    // Admin
-    var adminId: String?
-        get() = preferences.getString("adminId", null)
-        set(value) = preferences.edit().putString("adminId", value).apply()
-
-    // Teacher
-    var teacherId: String?
-        get() = preferences.getString("teacherId", null)
-        set(value) = preferences.edit().putString("teacherId", value).apply()
-
-    // Student
-    var studentId: String?
-        get() = preferences.getString("studentId", null)
-        set(value) = preferences.edit().putString("studentId", value).apply()
-
-    var department: String?
-        get() = preferences.getString("department", null)
-        set(value) = preferences.edit().putString("department", value).apply()
-
-    var admissionYear: String?
-        get() = preferences.getString("admissionYear", null)
-        set(value) = preferences.edit().putString("admissionYear", value).apply()
-
-
-    // Attendance Code Submission Tracking
-    var lastCodeSubmitted: String?
-        get() = preferences.getString("lastCodeSubmitted", null)
-        set(value) = preferences.edit().putString("lastCodeSubmitted", value).apply()
-
-    // Enhanced clear function that properly logs out
-    fun clear() {
-        val wasLoggedIn = preferences.getBoolean("isLoggedIn", false)
-        preferences.edit().clear().apply()
-        System.out.println("🔓 Session cleared. Was logged in: $wasLoggedIn")
-    }
-
-    // Helper function to save complete login session
-    fun saveLoginSession(token: String, role: String, id: String) {
-
-        val expiryTime = JwtUtils.getTokenExpiryTime(token)
-
-        preferences.edit().apply {
-            putString("authToken", token)
-            putString("userRole", role)
-            putString("userId", id)
-            putBoolean("isLoggedIn", true)
-            putLong("tokenExpiryTime", expiryTime * 1000) // Convert to milliseconds
-            apply()
+    var userDetails: UserDetails?
+        get() {
+            val json= prefs.getString(KEY_USER_JSON, null)
+            return if (json!= null) gson.fromJson(json, UserDetails::class.java) else null
         }
 
-        System.out.println("💾 LOGIN SESSION SAVED:")
-        System.out.println("   - Role: $role")
-        System.out.println("   - User ID: $id")
-        System.out.println("   - Token: ${token.take(10)}...")
-        System.out.println("   - isLoggedIn: true")
-        System.out.println("Expiry time: ${JwtUtils.getTokenExpiryDate(token)}")
-    }
-
-    // Check if user should be automatically logged in
-    fun shouldAutoLogin(): Boolean {
-        return isLoggedIn && !authToken.isNullOrEmpty()
-    }
-
-    // Enhanced token expiration check
-    fun isTokenExpired(): Boolean {
-        val token = authToken
-        return if (!token.isNullOrEmpty()) {
-            JwtUtils.isTokenExpired(token)
-        } else {
-            true
-        }
-    }
-
-    fun printSessionStatus() {
-        val token = authToken
-        System.out.println("🔍 SESSION STATUS:")
-        System.out.println("   - isLoggedIn: $isLoggedIn")
-        System.out.println("   - userRole: $userRole")
-        System.out.println("   - authToken: ${token?.take(10)}...")
-        System.out.println("   - tokenExpired: ${isTokenExpired()}")
-
-        if (!token.isNullOrEmpty()) {
-            System.out.println("   - expiresAt: ${JwtUtils.getTokenExpiryDate(token)}")
-            System.out.println("   - timeUntilExpiry: ${JwtUtils.getTimeUntilExpiry(token)}")
+        set(value){
+            val json= gson.toJson(value)
+            prefs.edit().putString(KEY_USER_JSON, json).apply()
         }
 
-        System.out.println("   - studentId: $studentId")
-        System.out.println("   - teacherId: $teacherId")
-        System.out.println("   - adminId: $adminId")
+    //CORE
+    fun saveSession(token: String, user: UserDetails){
+        this.authToken= token
+        this.userDetails= user
+        this.isLoggedIn= true
+    }
+
+    //SECURITY CHEC
+    fun isTokenExpired(): Boolean{
+        val token= authToken ?: return true
+        return JwtUtils.isTokenExpired(token)
+    }
+
+    //CLEAR SHARED PREFERENCES
+    fun logout(){
+        prefs.edit().clear().apply()
+        clearPermissions()
     }
 }

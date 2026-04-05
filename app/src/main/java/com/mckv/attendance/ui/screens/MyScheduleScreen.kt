@@ -19,11 +19,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.data.remote.RetrofitClient
-import kotlinx.coroutines.launch
 import okhttp3.ResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
@@ -34,7 +32,7 @@ import retrofit2.Response
 fun MyScheduleScreen(navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val teacherId = SessionManager.teacherId ?: "UnKnown"
+    val teacherId = SessionManager.userDetails?.userId ?: "UnKnown"
 
     var schedules by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }

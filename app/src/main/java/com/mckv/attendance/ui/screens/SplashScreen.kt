@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -31,7 +30,6 @@ fun SplashScreen(navController: NavController) {
 
     LaunchedEffect(key1 = Unit) {
         // Debug current session status
-        SessionManager.printSessionStatus()
 
         // Simulate some loading time
         delay(1500)
@@ -46,30 +44,22 @@ fun SplashScreen(navController: NavController) {
             val token = SessionManager.authToken!!
             val timeUntilExpiry = JwtUtils.getTimeUntilExpiry(token)
 
-            System.out.println("✅ Token valid, expires in: $timeUntilExpiry")
+            val roles = SessionManager.userDetails?.role ?: emptyList()
 
-            when (SessionManager.userRole) {
-                "ROLE_STUDENT" -> {
-                    System.out.println("🔄 Auto-redirecting to Student Dashboard")
-                    navController.navigate("home") {
-                        popUpTo("splash_screen") { inclusive = true }
-                    }
+            val target = when {
+                roles.contains("STUDENT") -> "home"
+
+                roles.isNotEmpty() -> "dynamic_dashboard"
+
+                else -> null
+            }
+
+            if (target != null) {
+                navController.navigate(target) {
+                    popUpTo("splash_screen") { inclusive = true }
                 }
-                "ROLE_TEACHER" -> {
-                    System.out.println("🔄 Auto-redirecting to Teacher Dashboard")
-                    navController.navigate("teacher") {
-                        popUpTo("splash_screen") { inclusive = true }
-                    }
-                }
-                "ADMIN" -> {
-                    System.out.println("🔄 Auto-redirecting to Admin Dashboard")
-                    navController.navigate("admin_dashboard") {
-                        popUpTo("splash_screen") { inclusive = true }
-                    }
-                }
-                else -> {
-                    redirectToMainHome(navController, "Unknown role")
-                }
+            } else {
+                redirectToMainHome(navController, "Unknown role")
             }
         } else {
             // Handle expired or invalid token
@@ -78,11 +68,15 @@ fun SplashScreen(navController: NavController) {
                 if (SessionManager.isTokenExpired()) {
                     val expiryTime = JwtUtils.getTokenExpiryDate(token)
                     System.out.println("🔐 Token expired at: $expiryTime")
-                    SessionManager.clear()
-                    Toast.makeText(context, "Session expired, please login again", Toast.LENGTH_LONG).show()
+                    SessionManager.logout()
+                    Toast.makeText(
+                        context,
+                        "Session expired, please login again",
+                        Toast.LENGTH_LONG
+                    ).show()
                 } else {
                     System.out.println("🔐 Invalid token format")
-                    SessionManager.clear()
+                    SessionManager.logout()
                 }
             } else {
                 System.out.println("🔐 No active session")
@@ -127,7 +121,7 @@ fun SplashScreen(navController: NavController) {
 
 private fun redirectToMainHome(navController: NavController, reason: String = "") {
     System.out.println("🔀 Redirecting to main home: $reason")
-    navController.navigate("main_home") {
+    navController.navigate("login_screen") {
         popUpTo("splash_screen") { inclusive = true }
     }
 }
