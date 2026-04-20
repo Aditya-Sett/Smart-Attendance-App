@@ -93,6 +93,8 @@ class ReportViewModel : ViewModel() {
 
     var data by mutableStateOf<DepartmentResponse?>(null)
 
+    var isLoading by mutableStateOf(false)
+
     init {
         fetchData(selectedDepartment)
     }
@@ -100,6 +102,7 @@ class ReportViewModel : ViewModel() {
     fun fetchData(dept: String) {
         viewModelScope.launch {
             try {
+                isLoading = true
                 selectedDepartment = dept
                 val response = RetrofitClient.analysisInstance.getDepartmentReport(dept)
 
@@ -109,6 +112,8 @@ class ReportViewModel : ViewModel() {
                 }
             } catch (e:Exception) {
                 e.printStackTrace()
+            } finally {
+                isLoading = false  // 👈 STOP LOADING
             }
         }
     }
@@ -118,6 +123,7 @@ class ReportViewModel : ViewModel() {
 @Composable
 fun ReportScreen(navController: NavController, viewModel: ReportViewModel) {
     val data = viewModel.data
+    val isLoading = viewModel.isLoading
 
     Scaffold(
         topBar = {
@@ -168,6 +174,15 @@ fun ReportScreen(navController: NavController, viewModel: ReportViewModel) {
             item {
                 GraphCard(viewModel)
                 Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator()
             }
         }
     }
