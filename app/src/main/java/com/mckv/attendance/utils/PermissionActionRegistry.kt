@@ -30,7 +30,7 @@ object PermissionActionRegistry {
             "Analysis",
             "View Analytics",
             Icons.Default.Delete,
-            "delete_user"
+            "view_analytics"
         ),
 
         "MANAGE_ATTENDANCE" to UiPermissionAction(

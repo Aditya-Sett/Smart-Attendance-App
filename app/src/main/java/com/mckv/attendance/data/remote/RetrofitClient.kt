@@ -1,6 +1,7 @@
 package com.mckv.attendance.data.remote
 
 import com.mckv.attendance.BuildConfig
+import com.mckv.attendance.data.remote.api.AnalysisService
 import com.mckv.attendance.data.remote.api.AttendanceService
 import com.mckv.attendance.data.remote.api.AuthApiService
 import com.mckv.attendance.data.remote.api.RolePermissionApiService
@@ -15,6 +16,7 @@ object RetrofitClient {
     private const val BASE_URL = BuildConfig.BASE_URL
     private const val BASE_AUTH_URL=BuildConfig.BASE_AUTH_URL;
     private const val BASE_ROLE_URL=BuildConfig.BASE_ROLE_URL;
+    private const val BASE_ANALYSIS_URL=BuildConfig.BASE_ANALYSIS_URL;
 
     // 1. Create a logging interceptor
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
@@ -65,6 +67,11 @@ object RetrofitClient {
     // Role Permission Api Service
     val rolePermissionInstance: RolePermissionApiService by lazy {
         createRetrofit(BASE_ROLE_URL).create(RolePermissionApiService::class.java)
+    }
+
+    // Analysis Api Service
+    val analysisInstance: AnalysisService by lazy {
+        createRetrofit(BASE_ANALYSIS_URL).create(AnalysisService::class.java)
     }
 
     // Helper function to avoid code duplication

@@ -62,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.google.type.Date
 import com.mckv.attendance.R
 import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.data.remote.RetrofitClient
@@ -227,12 +228,78 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
 
     var department by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    val semOptions = listOf("1st", "2nd", "3rd", "4th","5th", "6th", "7th", "8th")
+    var semester by remember { mutableStateOf("") }
     var responseMessage by remember { mutableStateOf<String?>(null) }
     var responseList by remember { mutableStateOf(mutableListOf<String>()) }
     var bluetoothUuid by remember { mutableStateOf<String?>(null) }
 
     // permission helper: returns (granted, requestFunction)
     val (hasPermissions, requestPermissions) = rememberWifiScanPermissions()
+
+    LaunchedEffect(Unit) {
+
+        val currentDay = SimpleDateFormat("EEEE", Locale.getDefault()).format(java.util.Date())
+        val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date())
+        println("currentDay: ${currentDay}")
+        println("currentTime: ${currentTime}")
+
+        val json = JSONObject().apply {
+            put("teacher_id", teacherId)
+            put("day", currentDay)
+            put("time", currentTime)
+        }
+
+        val requestBody = json.toString()
+            .toRequestBody("application/json".toMediaTypeOrNull())
+
+        RetrofitClient.analysisInstance.getCurrentClass(requestBody)
+            .enqueue(object : Callback<ResponseBody> {
+
+                override fun onResponse(
+                    call: Call<ResponseBody>,
+                    response: Response<ResponseBody>
+                ) {
+                    if (response.isSuccessful) {
+
+                        val result = response.body()?.string()
+                        if (result != null) {
+
+                            val obj = JSONObject(result)
+                            val success = obj.optBoolean("success", false)
+
+                            if (success) {
+                                // ✅ AUTO FILL
+                                department = obj.optString("department", "")
+                                subject = obj.optString("subject", "")
+                                semester = when (obj.optInt("semester", 0)) {
+                                    1 -> "1st"
+                                    2 -> "2nd"
+                                    3 -> "3rd"
+                                    4 -> "4th"
+                                    5 -> "5th"
+                                    6 -> "6th"
+                                    7 -> "7th"
+                                    8 -> "8th"
+                                    else -> ""
+                                }
+                            } else {
+                                // ❌ No class found → do nothing (manual input stays)
+                                Log.d("AUTO_FILL", "No class found")
+                            }
+                        }
+
+                    } else {
+                        Log.e("AUTO_FILL", "Server error")
+                    }
+                }
+
+                override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                    Log.e("AUTO_FILL", "API failed: ${t.message}")
+                }
+            })
+    }
 
     Scaffold(
         topBar = {
@@ -301,9 +368,9 @@ fun TakeAttendanceScreen(navController: androidx.navigation.NavHostController) {
                     )
 
                     // --- Dropdown for Class Name ---
-                    var expanded by remember { mutableStateOf(false) }
-                    val semOptions = listOf("1st", "2nd", "3rd", "4th","5th", "6th", "7th", "8th")
-                    var semester by remember { mutableStateOf("") }
+//                    var expanded by remember { mutableStateOf(false) }
+//                    val semOptions = listOf("1st", "2nd", "3rd", "4th","5th", "6th", "7th", "8th")
+//                    var semester by remember { mutableStateOf("") }
 
                     ExposedDropdownMenuBox(
                         expanded = expanded,

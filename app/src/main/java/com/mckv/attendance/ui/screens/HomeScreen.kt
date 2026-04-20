@@ -60,6 +60,8 @@ fun HomeScreen(navController: NavHostController) {
     val activity = context as Activity
     val studentId = SessionManager.userDetails?.userId ?: "Unknown"
     val department = SessionManager.userDetails?.department ?: "Unknown"
+    val academic_year = SessionManager.userDetails?.studentProfile?.academicYear ?: "Unknown"
+    val sem = SessionManager.userDetails?.studentProfile?.semester ?: "Unknown"
     val admissionYear = SessionManager.userDetails?.studentProfile?.admissionYear ?: "Unknown"
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -294,6 +296,8 @@ fun HomeScreen(navController: NavHostController) {
                                 studentId = studentId,
                                 department = department,
                                 inputCode = inputCode,
+                                academic_year = academic_year,
+                                sem = sem,
                                 activeCode = activeCode,
                                 onSuccess = {
                                     AttendanceManager.lastCodeSubmitted = activeCode
@@ -762,16 +766,40 @@ fun submitAttendance(
     studentId: String,
     department: String,
     inputCode: String,
+    academic_year: String,
+    sem: String,
     activeCode: String?,
     onSuccess: () -> Unit,
     onFailure: (String) -> Unit
 ) {
     val wifiFingerprint = getWifiFingerPrint(context)
 
+    println("academic_year: $academic_year")
+    println("sem: $sem")
+
+    var tempacademic_year = academic_year
+
+    val partsacademic_year = academic_year.split("-")
+    tempacademic_year = "${partsacademic_year[0]}-${partsacademic_year[1].takeLast(2)}"
+
+    val formattedSem = when (sem) {
+        "1" -> "1st"
+        "2" -> "2nd"
+        "3" -> "3rd"
+        "4" -> "4th"
+        "5" -> "5th"
+        "6" -> "6th"
+        "7" -> "7th"
+        "8" -> "8th"
+        else -> sem // Returns the original if no match
+    }
+
     val json = JSONObject().apply {
         put("studentId", studentId)
         put("department", department)
         put("code", inputCode)
+        put("academic_year", tempacademic_year)
+        put("sem", formattedSem)
         put("wifiFingerprint", wifiFingerprint)
     }
 

@@ -2,6 +2,7 @@ package com.mckv.attendance.navigation
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -27,6 +28,8 @@ import com.mckv.attendance.ui.screens.MainHomeScreen
 import com.mckv.attendance.ui.screens.ManageRoleScreen
 import com.mckv.attendance.ui.screens.MyScheduleScreen
 import com.mckv.attendance.ui.screens.ProfileScreen
+import com.mckv.attendance.ui.screens.ReportScreen
+import com.mckv.attendance.ui.screens.ReportViewModel
 import com.mckv.attendance.ui.screens.ScheduleScreen
 import com.mckv.attendance.ui.screens.SplashScreen
 import com.mckv.attendance.ui.screens.StudentsAttendanceSummaryScreen
@@ -49,6 +52,10 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable("home") {
             HomeScreen(navController)
+        }
+        composable("view_analytics") {
+            val viewModel: ReportViewModel = viewModel()
+            ReportScreen(navController,viewModel = viewModel)
         }
         composable("schedule") {
             //ScheduleScreen(department = "CSE")

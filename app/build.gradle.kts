@@ -16,6 +16,7 @@ val localProperties = Properties().apply {
 val baseUrl: String = localProperties.getProperty("BASE_URL") ?: ""
 val baseAuthUrl:String= localProperties.getProperty("BASE_AUTH_URL") ?: ""
 val baseRoleUrl:String= localProperties.getProperty("BASE_ROLE_URL") ?: ""
+val baseAnalysisUrl:String= localProperties.getProperty("BASE_ANALYSIS_URL") ?: ""
 
 android {
     namespace = "com.mckv.attendance"
@@ -47,6 +48,11 @@ android {
         buildConfigField("String",
             "BASE_ROLE_URL",
             "\"$baseRoleUrl\""
+        )
+
+        buildConfigField("String",
+            "BASE_ANALYSIS_URL",
+            "\"$baseAnalysisUrl\""
         )
     }
 
@@ -83,11 +89,18 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.0.1")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")  // Retrofit and JSON
     implementation("com.squareup.retrofit2:converter-gson:2.9.0") // Retrofit and JSON
-    implementation("com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.11") // Logging Interceptor
-    implementation("com.squareup.okhttp3:okhttp:4.9.3") // For using ResponseBody
+    //implementation("com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.11") // Logging Interceptor
+    //implementation("com.squareup.okhttp3:okhttp:4.9.3") // For using ResponseBody
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation ("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("com.patrykandpatrick.vico:compose:1.13.1")
+    implementation("com.patrykandpatrick.vico:core:1.13.1")
+    implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
     implementation(libs.androidx.room.runtime.android)
+    implementation(libs.protolite.well.known.types)
+    //implementation(libs.androidx.compose.material)
     //implementation(libs.androidx.camera.camera2.pipe)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
