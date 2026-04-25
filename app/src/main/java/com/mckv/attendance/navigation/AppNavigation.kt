@@ -33,8 +33,12 @@ import com.mckv.attendance.ui.screens.ReportViewModel
 import com.mckv.attendance.ui.screens.ScheduleScreen
 import com.mckv.attendance.ui.screens.SplashScreen
 import com.mckv.attendance.ui.screens.StudentsAttendanceSummaryScreen
-import com.mckv.attendance.ui.screens.TakeAttendanceScreen
+
+import com.mckv.attendance.ui.screens.take_attendance.TakeAttendanceScreen2
+//import com.mckv.attendance.ui.screens.TakeAttendanceScreen
 import com.mckv.attendance.ui.screens.UploadCurriculumScreen
+import com.mckv.attendance.ui.screens.take_attendance.TakeAttendanceScreen2
+
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
@@ -133,7 +137,7 @@ fun AppNavigation(navController: NavHostController) {
         }
 
         composable("take_attendance") {
-            TakeAttendanceScreen(navController)
+            TakeAttendanceScreen2(navController)
         }
         composable("attendance_records") {
             AttendanceRecordsScreen(navController)

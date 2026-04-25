@@ -22,6 +22,7 @@ import com.mckv.attendance.navigation.AppNavigation
 import com.mckv.attendance.receiver.GeofenceBroadcastReceiver
 import com.mckv.attendance.ui.theme.SmartAttendanceAppTheme
 
+
 class MainActivity : ComponentActivity() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
