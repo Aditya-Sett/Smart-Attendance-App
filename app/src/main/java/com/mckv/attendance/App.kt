@@ -13,5 +13,6 @@ class App : Application() {
         SessionManager.init(this)
         PermissionManager.init(this)
         AttendanceManager.init(this)
+//        ActiveCodeManager.init(this)
     }
 }

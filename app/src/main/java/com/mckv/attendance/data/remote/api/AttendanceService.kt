@@ -1,18 +1,19 @@
 package com.mckv.attendance.data.remote.api
 
+import com.mckv.attendance.data.remote.dto.request.ClassroomRequest
 import com.mckv.attendance.data.remote.dto.request.ScheduleRequest
+import com.mckv.attendance.data.remote.dto.response.ClassroomResponse
 import com.mckv.attendance.data.remote.dto.response.ScheduleResponse
+import com.mckv.attendance.ui.screens.UploadedCurriculum
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
-import retrofit2.*
+import retrofit2.Call
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
-import retrofit2.http.Path
-import com.mckv.attendance.data.remote.dto.request.ClassroomRequest
-import com.mckv.attendance.data.remote.dto.response.ClassroomResponse
-import com.mckv.attendance.ui.screens.UploadedCurriculum
 import retrofit2.http.PUT
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface AttendanceService {
@@ -34,10 +35,16 @@ interface AttendanceService {
     @POST("api/attendance/generate")
     fun generateCode(@Body requestBody: RequestBody): Call<ResponseBody>
 
+    @POST("api/attendance/generate")
+    suspend fun genearteCode2(@Body requestBody: RequestBody): retrofit2.Response<AttendanceCodeModel>
+
     @POST("api/attendance/latest")
     fun getLatestCode(
         @Body body: RequestBody
     ): Call<ResponseBody>
+
+    @POST("api/attendance/latest")
+    suspend fun getLatestCode2(@Body requestBody: RequestBody): retrofit2.Response<LatestCodeModel>
 
     @POST("api/attendance/submit")
     fun submitAttendanceCode(
@@ -48,6 +55,9 @@ interface AttendanceService {
     fun closeCode(
         @Body requestBody: RequestBody
     ): Call<ResponseBody>
+
+    @POST("api/attendance/delete")
+    suspend fun deleteCode(@Body requestBody: RequestBody): retrofit2.Response<DeleteCodeModel>
 
     @GET("api/attendance/summary/{studentId}/{department}")
     fun getAttendanceSummary(
@@ -119,3 +129,28 @@ interface AttendanceService {
         @Path("teacherId") teacherId: String
     ): Response<ResponseBody>
 }
+
+data class AttendanceCodeModel(
+    val success: Boolean,
+    val message: String,
+    val code: String,
+    val generatedAt: String,
+    val expiresAt: String,
+    val subject: String,
+    val teacherId: String,
+    val className: String,
+    val sem: String,
+    val department: String,
+    val academicYear: String,
+    val admissionYear: Int
+)
+
+data class LatestCodeModel(
+    val success: Boolean,
+    val message: String
+)
+
+data class DeleteCodeModel(
+    val success: Boolean,
+    val message: String
+)
