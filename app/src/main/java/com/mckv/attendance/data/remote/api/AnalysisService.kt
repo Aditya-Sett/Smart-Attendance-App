@@ -23,6 +23,16 @@ interface AnalysisService {
     @POST("api/teacher/current-class")
     suspend fun getCurrentClass2( @Body body: RequestBody): retrofit2.Response<ClassDataModel>
 
+    @POST("api/attendancecodes/by-teacher-date")
+    suspend fun getAttendanceSessions(
+        @Body body: RequestBody
+    ): Response<ResponseBody>
+
+    @POST("api/attendance/get-attendance-summary")
+    suspend fun getAttendanceSummary(
+        @Body body: RequestBody
+    ): Response<ResponseBody>
+
 }
 
 data class ClassDataModel(

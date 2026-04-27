@@ -13,6 +13,7 @@ import com.mckv.attendance.ui.screens.AddScheduleScreen
 import com.mckv.attendance.ui.screens.ApproveAbsenceScreen
 import com.mckv.attendance.ui.screens.AttendanceDetailsScreen
 import com.mckv.attendance.ui.screens.AttendanceRecordsScreen
+import com.mckv.attendance.ui.screens.AttendanceSessionsScreen
 import com.mckv.attendance.ui.screens.AttendanceSummaryScreen
 import com.mckv.attendance.ui.screens.ClassroomListScreen
 import com.mckv.attendance.ui.screens.ConsiderAbsenceScreen
@@ -31,6 +32,7 @@ import com.mckv.attendance.ui.screens.ProfileScreen
 import com.mckv.attendance.ui.screens.ReportScreen
 import com.mckv.attendance.ui.screens.ReportViewModel
 import com.mckv.attendance.ui.screens.ScheduleScreen
+import com.mckv.attendance.ui.screens.SessionDetailsScreen
 import com.mckv.attendance.ui.screens.SplashScreen
 import com.mckv.attendance.ui.screens.StudentsAttendanceSummaryScreen
 
@@ -53,6 +55,12 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable("login_screen") {
             LoginScreen(navController)
+        }
+        composable("view_attendance") {
+            AttendanceSessionsScreen(navController)
+        }
+        composable("session_details") {
+            SessionDetailsScreen(navController)
         }
         composable("home") {
             HomeScreen(navController)
