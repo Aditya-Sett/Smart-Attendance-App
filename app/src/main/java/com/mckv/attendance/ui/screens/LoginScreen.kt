@@ -55,8 +55,251 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.ui.platform.LocalDensity
 
-
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun LoginScreen(navController: NavController) {
+
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    var usernameError by remember { mutableStateOf("") }
+    var passwordError by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
+    val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+
+    val gradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF1E88E5),
+            Color(0xFF42A5F5)
+        )
+    )
+
+    // 👉 Animation for "Welcome Back"
+    val animatedOffset by animateDpAsState(
+        targetValue = if (keyboardOpen) 0.dp else 10.dp,
+        animationSpec = tween(600)
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(gradient)
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+        ) {
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // ✅ Single line animated text
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp)
+            ) {
+                Text(
+                    text = "Welcome Back",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.offset(x = animatedOffset)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // ✅ Fixed Card Shape (top only curved)
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(
+                    topStart = 40.dp,
+                    topEnd = 40.dp,
+                    bottomStart = 40.dp,
+                    bottomEnd = 40.dp
+                ),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Top
+                ) {
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Username
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = {
+                            username = it
+                            usernameError = ""
+                        },
+                        placeholder = { Text("Email or Username") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1,
+                        isError = usernameError.isNotEmpty(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color.Gray
+                        )
+                    )
+
+                    if (usernameError.isNotEmpty()) {
+                        Text(
+                            text = usernameError,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Password
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = {
+                            password = it
+                            passwordError = ""
+                        },
+                        placeholder = { Text("Password") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.VisibilityOff,
+                                contentDescription = null
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                passwordVisible = !passwordVisible
+                            }) {
+                                Icon(
+                                    imageVector = if (passwordVisible)
+                                        Icons.Default.Visibility
+                                    else
+                                        Icons.Default.VisibilityOff,
+                                    contentDescription = null
+                                )
+                            }
+                        },
+                        visualTransformation = if (passwordVisible)
+                            VisualTransformation.None
+                        else
+                            PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1,
+                        shape = RoundedCornerShape(14.dp),
+                        isError = passwordError.isNotEmpty(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color.Gray
+                        )
+                    )
+
+                    if (passwordError.isNotEmpty()) {
+                        Text(
+                            text = passwordError,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    // Login Button
+                    Button(
+                        onClick = {
+
+                            var hasError = false
+
+                            if (username.isBlank()) {
+                                usernameError = "Plz enter your username"
+                                hasError = true
+                            }
+
+                            if (password.isBlank()) {
+                                passwordError = "Plz enter your password"
+                                hasError = true
+                            }
+
+                            if (hasError) return@Button
+
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
+
+                            val request = LoginRequest(username, password)
+                            loading = true
+                            errorMessage = ""
+
+                            loginUser(request, context, navController) {
+                                loading = false
+                            }
+
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp),
+                        shape = RoundedCornerShape(30.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2962FF)
+                        )
+                    ) {
+                        if (loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Login",
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = loading,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+    }
+}
+/*@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
@@ -417,7 +660,250 @@ fun LoginScreen(navController: NavController) {
             }
         }
     }
-}
+}*/
+/*@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun LoginScreen(navController: NavController) {
+
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    var usernameError by remember { mutableStateOf("") }
+    var passwordError by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
+    val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+
+    val gradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF1E88E5),
+            Color(0xFF42A5F5)
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(gradient)
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+        ) {
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Top Text
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp)
+            ) {
+                Text(
+                    text = "Welcome",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Back",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // White curved container
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(
+                    topStart = 40.dp,
+                    topEnd = 40.dp
+                ),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Top
+                ) {
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Username
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = {
+                            username = it
+                            usernameError = ""
+                        },
+                        placeholder = { Text("Email or Username") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1,
+                        isError = usernameError.isNotEmpty(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color.Gray
+                        )
+                    )
+
+                    if (usernameError.isNotEmpty()) {
+                        Text(
+                            text = usernameError,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Password
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = {
+                            password = it
+                            passwordError = ""
+                        },
+                        placeholder = { Text("Password") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.VisibilityOff,
+                                contentDescription = null
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                passwordVisible = !passwordVisible
+                            }) {
+                                Icon(
+                                    imageVector = if (passwordVisible)
+                                        Icons.Default.Visibility
+                                    else
+                                        Icons.Default.VisibilityOff,
+                                    contentDescription = null
+                                )
+                            }
+                        },
+                        visualTransformation = if (passwordVisible)
+                            VisualTransformation.None
+                        else
+                            PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1,
+                        shape = RoundedCornerShape(14.dp),
+                        isError = passwordError.isNotEmpty(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color.Gray
+                        )
+                    )
+
+                    if (passwordError.isNotEmpty()) {
+                        Text(
+                            text = passwordError,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    // Login Button
+                    Button(
+                        onClick = {
+
+                            var hasError = false
+
+                            if (username.isBlank()) {
+                                usernameError = "Plz enter your username"
+                                hasError = true
+                            }
+
+                            if (password.isBlank()) {
+                                passwordError = "Plz enter your password"
+                                hasError = true
+                            }
+
+                            if (hasError) return@Button
+
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
+
+                            val request = LoginRequest(username, password)
+                            loading = true
+                            errorMessage = ""
+
+                            loginUser(request, context, navController) {
+                                loading = false
+                            }
+
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp),
+                        shape = RoundedCornerShape(30.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2962FF)
+                        )
+                    ) {
+                        if (loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Login",
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Loading overlay (unchanged)
+        AnimatedVisibility(
+            visible = loading,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+    }
+}*/
+
 
 
 
