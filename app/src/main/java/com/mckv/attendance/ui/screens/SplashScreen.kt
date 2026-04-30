@@ -143,71 +143,52 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.mckv.attendance.data.local.SessionManager
-import com.mckv.attendance.utils.JwtUtils
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(navController: NavController) {
-    val context = LocalContext.current
 
     // ================= LOGIC =================
     LaunchedEffect(Unit) {
-        delay(1500)
+        delay(3000)
 
         val isLoggedIn = SessionManager.isLoggedIn &&
                 !SessionManager.authToken.isNullOrEmpty() &&
                 !SessionManager.isTokenExpired()
 
         if (isLoggedIn) {
-            val token = SessionManager.authToken!!
             val roles = SessionManager.userDetails?.role ?: emptyList()
 
             val target = when {
                 roles.contains("STUDENT") -> "home"
                 roles.isNotEmpty() -> "dynamic_dashboard"
-                else -> null
+                else -> "login_screen"
             }
 
-            if (target != null) {
-                navController.navigate(target) {
-                    popUpTo("splash_screen") { inclusive = true }
-                }
-            } else {
-                redirectToMainHome(navController, "Unknown role")
+            navController.navigate(target) {
+                popUpTo("splash_screen") { inclusive = true }
             }
 
         } else {
-            val token = SessionManager.authToken
-            if (SessionManager.isLoggedIn && token != null) {
-                if (SessionManager.isTokenExpired()) {
-                    SessionManager.logout()
-                    Toast.makeText(
-                        context,
-                        "Session expired, please login again",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
-                    SessionManager.logout()
-                }
+            SessionManager.logout()
+            navController.navigate("login_screen") {
+                popUpTo("splash_screen") { inclusive = true }
             }
-            redirectToMainHome(navController, "Please login")
         }
     }
 
-    // ================= UI =================
-
-    // Floating animation
+    // ================= ANIMATION =================
     val infiniteTransition = rememberInfiniteTransition(label = "")
+
     val floatAnim by infiniteTransition.animateFloat(
-        initialValue = -10f,
-        targetValue = 10f,
+        initialValue = -8f,
+        targetValue = 8f,
         animationSpec = infiniteRepeatable(
             animation = tween(2000, easing = EaseInOut),
             repeatMode = RepeatMode.Reverse
@@ -215,23 +196,23 @@ fun SplashScreen(navController: NavController) {
         label = ""
     )
 
-    // Entry animations
-    val scale = remember { Animatable(0.8f) }
+    val scale = remember { Animatable(0.9f) }
     val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        scale.animateTo(1f, animationSpec = tween(800, easing = EaseOutBack))
-        alpha.animateTo(1f, animationSpec = tween(800))
+        scale.animateTo(1f, tween(800, easing = EaseOutBack))
+        alpha.animateTo(1f, tween(800))
     }
 
+    // ================= UI =================
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.verticalGradient(
+                Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0D47A1),
-                        Color(0xFF1976D2)
+                        Color(0xFFF5F9FF),  // very light blue (almost white)
+                        Color(0xFFE3F2FD)   // soft light blue
                     )
                 )
             )
@@ -244,20 +225,39 @@ fun SplashScreen(navController: NavController) {
                 .align(Alignment.TopEnd)
                 .offset(x = 60.dp, y = (-40).dp)
                 .clip(CircleShape)
-                .background(Color(0xFF29B6F6))
+                .background(Color(0xFF64B5F6))
         )
 
-        // ⚪ Bottom Left Circle
+        // 🔵 Bottom Left Circle
         Box(
             modifier = Modifier
                 .size(260.dp)
                 .align(Alignment.BottomStart)
                 .offset(x = (-80).dp, y = 80.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.9f))
+                .background(Color(0xFF90CAF9))
         )
 
-        // ✨ Animated Content
+        // 🔹 Small decorative dots
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .align(Alignment.TopEnd)
+                .offset(x = (-50).dp, y = 70.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF1E88E5))
+        )
+
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .align(Alignment.CenterEnd)
+                .offset(x = (-30).dp)
+                .clip(CircleShape)
+                .background(Color(0xFF42A5F5))
+        )
+
+        // ✨ Content
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -267,25 +267,11 @@ fun SplashScreen(navController: NavController) {
         ) {
 
             Text(
-                text = "SMART",
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.Serif,
-                modifier = Modifier.graphicsLayer {
-                    scaleX = scale.value
-                    scaleY = scale.value
-                    this.alpha = alpha.value
-                }
-            )
-
-            Text(
-                text = "ATTENDANCE APP",
-                color = Color.White,
-                fontSize = 30.sp,
+                text = "EDU-One+",
+                color = Color(0xFF0D47A1),
+                fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 1.5.sp,
-                fontFamily = FontFamily.Serif,
+                fontFamily = FontFamily.SansSerif,
                 modifier = Modifier.graphicsLayer {
                     scaleX = scale.value
                     scaleY = scale.value
@@ -293,17 +279,17 @@ fun SplashScreen(navController: NavController) {
                 }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             AnimatedVisibility(
-                visible = alpha.value > 0.7f,
+                visible = alpha.value > 0.6f,
                 enter = fadeIn(tween(600))
             ) {
                 Text(
-                    text = "Attend today, Make tomorrow",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.Serif
+                    text = "Powerful and intuitive Education\nManagement Software",
+                    color = Color.DarkGray,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
                 )
             }
 
@@ -314,19 +300,11 @@ fun SplashScreen(navController: NavController) {
                 enter = fadeIn(tween(600))
             ) {
                 CircularProgressIndicator(
-                    color = Color.White,
+                    color = Color(0xFF1E88E5),
                     strokeWidth = 2.dp,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
     }
 }
-
-private fun redirectToMainHome(navController: NavController, reason: String = "") {
-    System.out.println("🔀 Redirecting to main home: $reason")
-    navController.navigate("login_screen") {
-        popUpTo("splash_screen") { inclusive = true }
-    }
-}
-
