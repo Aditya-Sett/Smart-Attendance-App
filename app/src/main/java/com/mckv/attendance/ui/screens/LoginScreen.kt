@@ -1219,11 +1219,11 @@ fun LoginScreen(navController: NavController) {
 
     // 🌈 BLUE THEME
     val blueGradient = Brush.horizontalGradient(
-        listOf(Color(0xFF81D4FA), Color(0xFF003153))
+        listOf(Color(0xFF81D4FA), Color(0xFF2196F3))
     )
 
     val buttonGradient = Brush.horizontalGradient(
-        listOf(Color(0xFF4FC3F7), Color(0xFF002147))
+        listOf(Color(0xFF4FC3F7), Color(0xFF1E88E5))
     )
 
     // 📱 Keyboard detection
@@ -1254,7 +1254,7 @@ fun LoginScreen(navController: NavController) {
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(
-                        listOf(Color(0xFF81D4FA), Color(0xFF1E5A7A))
+                        listOf(Color(0xFF81D4FA), Color(0xFF2196F3))
                     )
                 )
         )
@@ -1268,7 +1268,7 @@ fun LoginScreen(navController: NavController) {
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(
-                        listOf(Color(0xFF4FC3F7), Color(0xFF003153))
+                        listOf(Color(0xFF4FC3F7), Color(0xFF1E88E5))
                     )
                 )
         )
