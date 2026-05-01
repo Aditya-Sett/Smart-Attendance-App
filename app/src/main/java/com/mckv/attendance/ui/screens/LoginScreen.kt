@@ -1315,7 +1315,7 @@ fun LoginScreen(navController: NavController) {
                 TextField(
                     value = username,
                     onValueChange = {
-                        username = it
+                        username = it.trim()
                         usernameError = ""
                     },
                     placeholder = {
@@ -1351,7 +1351,7 @@ fun LoginScreen(navController: NavController) {
                 TextField(
                     value = password,
                     onValueChange = {
-                        password = it
+                        password = it.trim()
                         passwordError = ""
                     },
                     placeholder = {
