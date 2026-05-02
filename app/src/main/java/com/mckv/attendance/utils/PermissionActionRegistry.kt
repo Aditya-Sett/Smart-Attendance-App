@@ -86,7 +86,7 @@ object PermissionActionRegistry {
             "Analysis",
             "Generate Report",
             Icons.Default.Assessment,
-            "export_attendance"
+            "report_generate_attendance"
         ),
 
         "MANAGE_MEDICAL_LEAVE" to UiPermissionAction(

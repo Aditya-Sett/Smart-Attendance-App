@@ -33,6 +33,11 @@ interface AnalysisService {
         @Body body: RequestBody
     ): Response<ResponseBody>
 
+    @POST("api/attendance/report")
+    suspend fun getReport(
+        @Body request: RequestBody
+    ): Response<ResponseBody>
+
 }
 
 data class ClassDataModel(

@@ -1,5 +1,7 @@
 package com.mckv.attendance.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,6 +31,8 @@ import com.mckv.attendance.ui.screens.MainHomeScreen
 import com.mckv.attendance.ui.screens.ManageRoleScreen
 import com.mckv.attendance.ui.screens.MyScheduleScreen
 import com.mckv.attendance.ui.screens.ProfileScreen
+import com.mckv.attendance.ui.screens.ReportGenerateScreen
+import com.mckv.attendance.ui.screens.ReportGenetateViewModel
 import com.mckv.attendance.ui.screens.ReportScreen
 import com.mckv.attendance.ui.screens.ReportViewModel
 import com.mckv.attendance.ui.screens.ScheduleScreen
@@ -44,6 +48,7 @@ import com.mckv.attendance.ui.screens.student.StudentScreen
 import com.mckv.attendance.ui.screens.take_attendance.TakeAttendanceScreen2
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation(navController: NavHostController) {
     NavHost(navController = navController, startDestination = "splash_screen") {
@@ -63,6 +68,10 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable("session_details") {
             SessionDetailsScreen(navController)
+        }
+        composable("report_generate_attendance") {
+            val viewModel: ReportGenetateViewModel = viewModel()
+            ReportGenerateScreen(viewModel)
         }
         composable("home") {
             StudentScreen(navController)
@@ -160,9 +169,9 @@ fun AppNavigation(navController: NavHostController) {
         composable("attendance_records") {
             AttendanceRecordsScreen(navController)
         }
-        composable("export_attendance") {
+        /*composable("export_attendance") {
             ExportAttendanceScreen(navController)
-        }
+        }*/
         composable("consider_absence") {
             ConsiderAbsenceScreen(navController)
         }
