@@ -128,6 +128,11 @@ interface AttendanceService {
     suspend fun getTeacherSchedule(
         @Path("teacherId") teacherId: String
     ): Response<ResponseBody>
+
+    @POST("api/attendance/save")
+    suspend fun saveAttendance2(
+        @Body requestBody: RequestBody
+    ): Response<ResponseBody>
 }
 
 data class AttendanceCodeModel(

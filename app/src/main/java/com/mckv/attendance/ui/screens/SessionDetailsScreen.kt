@@ -1,6 +1,7 @@
 package com.mckv.attendance.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +21,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.data.remote.RetrofitClient
@@ -27,8 +30,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
-import com.mckv.attendance.ui.screens.convertToIST
+import androidx.activity.compose.BackHandler
 
 // Modern color palette
 object AttendanceColors {
@@ -46,6 +50,8 @@ object AttendanceColors {
     val Divider = Color(0xFFE0E0E0)
     val PresentBg = Color(0xFFE8F5E9)
     val AbsentBg = Color(0xFFFFEBEE)
+    val EditedHighlight = Color(0xFFFFF9C4)
+    val EditedBorder = Color(0xFFFBC02D)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,18 +68,40 @@ fun SessionDetailsScreen(navController: NavController) {
     val generatedAt = sessionJson.getString("generatedAt")
     val sessionName = sessionJson.optString("sessionName", "Attendance Session")
 
+    // ----- core state -----
     var studentList by remember { mutableStateOf(listOf<StudentAttendance>()) }
+    var editableList by remember { mutableStateOf(listOf<StudentAttendance>()) }
+    val editedStudentIds = remember { mutableStateListOf<String>() }
+
     var filteredList by remember { mutableStateOf(listOf<StudentAttendance>()) }
+
+    // FIX: Separate loading states — initial page load vs save-in-progress
     var isLoading by remember { mutableStateOf(true) }
+    var isSaving by remember { mutableStateOf(false) }
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf<AttendanceFilter?>(null) }
     var showFilterMenu by remember { mutableStateOf(false) }
 
+    var isEditMode by remember { mutableStateOf(false) }
+    var hasChanges by remember { mutableStateOf(false) }
+
+    val presentStudents = remember { mutableStateListOf<String>() }
+    val absentStudents = remember { mutableStateListOf<String>() }
+
+    var showSaveDialog by remember { mutableStateOf(false) }
+
+    // FIX: reloadTrigger forces re-fetch from API after a successful save
+    var reloadTrigger by remember { mutableStateOf(0) }
+
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
+    // ----- load / reload from API -----
+    // Runs on first composition AND whenever reloadTrigger increments
+    LaunchedEffect(reloadTrigger) {
+        isLoading = true
         val rawData = fetchAttendanceSummary(teacherId, generatedAt)
-        studentList = rawData.map {
+        val loaded = rawData.map {
             StudentAttendance(
                 studentId = it.getString("studentId"),
                 roll = it.getString("collegeRoll"),
@@ -81,13 +109,15 @@ fun SessionDetailsScreen(navController: NavController) {
                 status = it.getString("status")
             )
         }
-        filteredList = studentList
+        studentList = loaded
+        editableList = loaded
         isLoading = false
     }
 
-    LaunchedEffect(searchQuery, selectedFilter, studentList) {
+    // ----- filter always runs against editableList (live) -----
+    LaunchedEffect(searchQuery, selectedFilter, editableList) {
         delay(300)
-        var result = studentList
+        var result = editableList
 
         if (searchQuery.isNotBlank()) {
             result = result.filter {
@@ -99,17 +129,62 @@ fun SessionDetailsScreen(navController: NavController) {
 
         when (selectedFilter) {
             AttendanceFilter.PRESENT -> result = result.filter { it.status == "present" }
-            AttendanceFilter.ABSENT -> result = result.filter { it.status == "absent" }
+            AttendanceFilter.ABSENT  -> result = result.filter { it.status == "absent"  }
             null -> {}
         }
 
         filteredList = result
     }
 
-    val presentCount = studentList.count { it.status == "present" }
-    val absentCount = studentList.count { it.status == "absent" }
-    val totalCount = studentList.size
+    // Counts always derived from editableList so summary is live during editing
+    val presentCount = editableList.count { it.status == "present" }
+    val absentCount  = editableList.count { it.status == "absent"  }
+    val totalCount   = editableList.size
     val attendancePercentage = if (totalCount > 0) (presentCount * 100f / totalCount) else 0f
+
+    BackHandler(enabled = isEditMode && hasChanges) {
+        showSaveDialog = true
+    }
+
+    // ----- FIX: Full-screen saving overlay -----
+    // Shown on top of everything while the API call is in-flight
+    if (isSaving) {
+        Dialog(
+            onDismissRequest = { /* not dismissible while saving */ },
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = AttendanceColors.Surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = AttendanceColors.Primary,
+                        modifier = Modifier.size(48.dp),
+                        strokeWidth = 4.dp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Saving changes...",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = AttendanceColors.TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Please wait",
+                        fontSize = 13.sp,
+                        color = AttendanceColors.TextSecondary
+                    )
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -122,7 +197,7 @@ fun SessionDetailsScreen(navController: NavController) {
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = convertToIST(generatedAt) ,
+                            text = convertToIST(generatedAt),
                             fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -131,6 +206,33 @@ fun SessionDetailsScreen(navController: NavController) {
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (isEditMode) {
+                        IconButton(
+                            onClick = { showSaveDialog = true },
+                            enabled = hasChanges
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = "Save")
+                        }
+                    }
+
+                    IconButton(onClick = {
+                        isEditMode = !isEditMode
+                        if (!isEditMode) {
+                            // Cancel — restore to last saved state
+                            editableList = studentList
+                            presentStudents.clear()
+                            absentStudents.clear()
+                            editedStudentIds.clear()
+                            hasChanges = false
+                        }
+                    }) {
+                        Icon(
+                            if (isEditMode) Icons.Default.Close else Icons.Default.Edit,
+                            contentDescription = "Edit"
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -148,6 +250,7 @@ fun SessionDetailsScreen(navController: NavController) {
                 .padding(paddingValues)
         ) {
             if (isLoading) {
+                // Initial / reload spinner — full screen
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = AttendanceColors.Primary)
@@ -161,7 +264,7 @@ fun SessionDetailsScreen(navController: NavController) {
                         .fillMaxSize()
                         .padding(16.dp)
                 ) {
-                    // Summary Cards Row
+                    // Summary Cards
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -191,7 +294,7 @@ fun SessionDetailsScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Attendance Percentage Card
+                    // Attendance Rate Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -237,7 +340,7 @@ fun SessionDetailsScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Search and Filter Row
+                    // Search & Filter Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -265,9 +368,7 @@ fun SessionDetailsScreen(navController: NavController) {
 
                         BadgedBox(badge = {
                             if (selectedFilter != null) {
-                                Badge(containerColor = AttendanceColors.Primary) {
-                                    Text("1")
-                                }
+                                Badge(containerColor = AttendanceColors.Primary) { Text("1") }
                             }
                         }) {
                             FilterChip(
@@ -277,7 +378,7 @@ fun SessionDetailsScreen(navController: NavController) {
                                     Text(
                                         when (selectedFilter) {
                                             AttendanceFilter.PRESENT -> "Present"
-                                            AttendanceFilter.ABSENT -> "Absent"
+                                            AttendanceFilter.ABSENT  -> "Absent"
                                             null -> "Filter"
                                         }
                                     )
@@ -298,64 +399,38 @@ fun SessionDetailsScreen(navController: NavController) {
                         }
                     }
 
-                    // Filter Dropdown Menu
+                    // Filter Dropdown
                     DropdownMenu(
                         expanded = showFilterMenu,
                         onDismissRequest = { showFilterMenu = false },
-                        modifier = Modifier
-                            .shadow(8.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                        modifier = Modifier.shadow(8.dp).clip(RoundedCornerShape(8.dp))
                     ) {
                         DropdownMenuItem(
                             text = { Text("All Students") },
-                            onClick = {
-                                selectedFilter = null
-                                showFilterMenu = false
-                            },
+                            onClick = { selectedFilter = null; showFilterMenu = false },
                             leadingIcon = { Icon(Icons.Default.People, contentDescription = null) }
                         )
                         DropdownMenuItem(
                             text = { Text("Present Only") },
-                            onClick = {
-                                selectedFilter = AttendanceFilter.PRESENT
-                                showFilterMenu = false
-                            },
+                            onClick = { selectedFilter = AttendanceFilter.PRESENT; showFilterMenu = false },
                             leadingIcon = {
-                                Icon(
-                                    Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = AttendanceColors.Success
-                                )
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AttendanceColors.Success)
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Absent Only") },
-                            onClick = {
-                                selectedFilter = AttendanceFilter.ABSENT
-                                showFilterMenu = false
-                            },
+                            onClick = { selectedFilter = AttendanceFilter.ABSENT; showFilterMenu = false },
                             leadingIcon = {
-                                Icon(
-                                    Icons.Default.Cancel,
-                                    contentDescription = null,
-                                    tint = AttendanceColors.Error
-                                )
+                                Icon(Icons.Default.Cancel, contentDescription = null, tint = AttendanceColors.Error)
                             }
                         )
                         if (selectedFilter != null) {
                             Divider()
                             DropdownMenuItem(
                                 text = { Text("Clear Filter", color = AttendanceColors.Error) },
-                                onClick = {
-                                    selectedFilter = null
-                                    showFilterMenu = false
-                                },
+                                onClick = { selectedFilter = null; showFilterMenu = false },
                                 leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Clear,
-                                        contentDescription = null,
-                                        tint = AttendanceColors.Error
-                                    )
+                                    Icon(Icons.Default.Clear, contentDescription = null, tint = AttendanceColors.Error)
                                 }
                             )
                         }
@@ -364,11 +439,33 @@ fun SessionDetailsScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Showing ${filteredList.size} of ${studentList.size} students",
+                        text = "Showing ${filteredList.size} of ${editableList.size} students",
                         fontSize = 12.sp,
                         color = AttendanceColors.TextSecondary,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
+
+                    if (isEditMode && editedStudentIds.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(AttendanceColors.EditedHighlight, RoundedCornerShape(2.dp))
+                                    .border(1.dp, AttendanceColors.EditedBorder, RoundedCornerShape(2.dp))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "${editedStudentIds.size} record(s) modified — unsaved",
+                                fontSize = 12.sp,
+                                color = AttendanceColors.EditedBorder,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -380,30 +477,20 @@ fun SessionDetailsScreen(navController: NavController) {
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {
-
-                            // ✅ FIXED: Header Row — weight called inside RowScope
+                            // Header
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(
                                         Brush.horizontalGradient(
-                                            listOf(
-                                                AttendanceColors.Primary,
-                                                AttendanceColors.PrimaryLight
-                                            )
+                                            listOf(AttendanceColors.Primary, AttendanceColors.PrimaryLight)
                                         )
                                     )
                                     .padding(horizontal = 16.dp, vertical = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                TableHeaderCell(
-                                    text = "Roll No.",
-                                    modifier = Modifier.weight(2f)
-                                )
-                                TableHeaderCell(
-                                    text = "Student Name",
-                                    modifier = Modifier.weight(3f)
-                                )
+                                TableHeaderCell(text = "Roll No.", modifier = Modifier.weight(2f))
+                                TableHeaderCell(text = "Student Name", modifier = Modifier.weight(3f))
                                 TableHeaderCell(
                                     text = "Status",
                                     modifier = Modifier.weight(1.5f),
@@ -412,10 +499,7 @@ fun SessionDetailsScreen(navController: NavController) {
                             }
 
                             if (filteredList.isEmpty()) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Icon(
                                             Icons.Default.SearchOff,
@@ -424,14 +508,10 @@ fun SessionDetailsScreen(navController: NavController) {
                                             tint = AttendanceColors.TextSecondary
                                         )
                                         Spacer(modifier = Modifier.height(16.dp))
-                                        Text(
-                                            text = "No students found",
-                                            fontSize = 16.sp,
-                                            color = AttendanceColors.TextSecondary
-                                        )
+                                        Text("No students found", fontSize = 16.sp, color = AttendanceColors.TextSecondary)
                                         if (searchQuery.isNotBlank() || selectedFilter != null) {
                                             Text(
-                                                text = "Try adjusting your search or filter",
+                                                "Try adjusting your search or filter",
                                                 fontSize = 14.sp,
                                                 color = AttendanceColors.TextSecondary
                                             )
@@ -440,8 +520,30 @@ fun SessionDetailsScreen(navController: NavController) {
                                 }
                             } else {
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    items(filteredList) { student ->
-                                        StudentAttendanceRow(student)
+                                    items(filteredList, key = { it.studentId }) { student ->
+                                        StudentAttendanceRow(
+                                            student = student,
+                                            isEditMode = isEditMode,
+                                            isEdited = student.studentId in editedStudentIds,
+                                            onStatusChange = { stu, newStatus ->
+                                                editableList = editableList.map {
+                                                    if (it.studentId == stu.studentId) it.copy(status = newStatus) else it
+                                                }
+                                                hasChanges = true
+
+                                                if (!editedStudentIds.contains(stu.studentId)) {
+                                                    editedStudentIds.add(stu.studentId)
+                                                }
+
+                                                if (newStatus == "present") {
+                                                    if (!presentStudents.contains(stu.studentId)) presentStudents.add(stu.studentId)
+                                                    absentStudents.remove(stu.studentId)
+                                                } else {
+                                                    if (!absentStudents.contains(stu.studentId)) absentStudents.add(stu.studentId)
+                                                    presentStudents.remove(stu.studentId)
+                                                }
+                                            }
+                                        )
                                     }
                                 }
                             }
@@ -451,7 +553,63 @@ fun SessionDetailsScreen(navController: NavController) {
             }
         }
     }
+
+    // Save confirmation dialog
+    if (showSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveDialog = false },
+            title = { Text("Confirm") },
+            text = { Text("Do you want to save the changes?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSaveDialog = false
+
+                    // Capture lists before clearing
+                    val presentSnapshot = presentStudents.toList()
+                    val absentSnapshot  = absentStudents.toList()
+
+                    // FIX: Clear edit UI state immediately so user sees non-edit view
+                    isEditMode = false
+                    hasChanges = false
+                    presentStudents.clear()
+                    absentStudents.clear()
+                    editedStudentIds.clear()
+
+                    scope.launch {
+                        // FIX: Show full-screen saving indicator
+                        isSaving = true
+
+                        val success = saveAttendanceChanges(
+                            teacherId,
+                            generatedAt,
+                            presentSnapshot,
+                            absentSnapshot
+                        )
+
+                        isSaving = false
+
+                        if (success) {
+                            // FIX: Trigger a real reload from the API/DB to get fresh data
+                            reloadTrigger++
+                        } else {
+                            // On failure: restore editable state so the user doesn't lose their work
+                            editableList = studentList
+                        }
+                    }
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveDialog = false }) { Text("No") }
+            }
+        )
+    }
 }
+
+// ---------------------------------------------------------------------------
+// Sub-composables
+// ---------------------------------------------------------------------------
 
 @Composable
 fun SummaryCard(
@@ -468,36 +626,19 @@ fun SummaryCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    text = title,
-                    fontSize = 12.sp,
-                    color = AttendanceColors.TextSecondary
-                )
-                Text(
-                    text = count.toString(),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
+                Text(text = title, fontSize = 12.sp, color = AttendanceColors.TextSecondary)
+                Text(text = count.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = color)
             }
-            Icon(
-                icon,
-                contentDescription = title,
-                modifier = Modifier.size(32.dp),
-                tint = color.copy(alpha = 0.7f)
-            )
+            Icon(icon, contentDescription = title, modifier = Modifier.size(32.dp), tint = color.copy(alpha = 0.7f))
         }
     }
 }
 
-// ✅ FIXED: Accepts Modifier from outside so weight is set in RowScope
 @Composable
 fun TableHeaderCell(
     text: String,
@@ -514,28 +655,41 @@ fun TableHeaderCell(
     )
 }
 
-// ✅ FIXED: Status badge no longer wraps text
 @Composable
-fun StudentAttendanceRow(student: StudentAttendance) {
+fun StudentAttendanceRow(
+    student: StudentAttendance,
+    isEditMode: Boolean,
+    isEdited: Boolean,
+    onStatusChange: (StudentAttendance, String) -> Unit
+) {
     val isPresent = student.status == "present"
-    val statusColor = if (isPresent) AttendanceColors.Success else AttendanceColors.Error
+    val statusColor   = if (isPresent) AttendanceColors.Success else AttendanceColors.Error
     val statusBgColor = if (isPresent) AttendanceColors.PresentBg else AttendanceColors.AbsentBg
+    var expanded by remember { mutableStateOf(false) }
+
+    val rowBg = when {
+        isEdited  -> AttendanceColors.EditedHighlight
+        isPresent -> AttendanceColors.PresentBg.copy(alpha = 0.3f)
+        else      -> AttendanceColors.AbsentBg.copy(alpha = 0.3f)
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                if (isPresent) AttendanceColors.PresentBg.copy(alpha = 0.3f)
-                else AttendanceColors.AbsentBg.copy(alpha = 0.3f)
+            .then(
+                if (isEdited) Modifier.border(
+                    width = 3.dp,
+                    color = AttendanceColors.EditedBorder,
+                    shape = RoundedCornerShape(0.dp)
+                ) else Modifier
             )
+            .background(rowBg)
             .padding(vertical = 10.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = student.roll.takeLast(3),
-            modifier = Modifier
-                .weight(2f)
-                .padding(horizontal = 4.dp),
+            modifier = Modifier.weight(2f).padding(horizontal = 4.dp),
             fontSize = 13.sp,
             color = AttendanceColors.TextPrimary,
             fontWeight = FontWeight.Medium,
@@ -545,20 +699,15 @@ fun StudentAttendanceRow(student: StudentAttendance) {
 
         Text(
             text = student.name,
-            modifier = Modifier
-                .weight(3f)
-                .padding(horizontal = 4.dp),
+            modifier = Modifier.weight(3f).padding(horizontal = 4.dp),
             fontSize = 13.sp,
             color = AttendanceColors.TextPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
 
-        // ✅ FIXED: Outer Box holds the weight, inner Box is the pill badge
         Box(
-            modifier = Modifier
-                .weight(1.5f)
-                .padding(horizontal = 4.dp),
+            modifier = Modifier.weight(1.5f).padding(horizontal = 4.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
@@ -578,6 +727,27 @@ fun StudentAttendanceRow(student: StudentAttendance) {
                 )
             }
         }
+
+        if (isEditMode) {
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "More")
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    if (student.status == "absent") {
+                        DropdownMenuItem(
+                            text = { Text("Mark as Present") },
+                            onClick = { expanded = false; onStatusChange(student, "present") }
+                        )
+                    } else {
+                        DropdownMenuItem(
+                            text = { Text("Mark as Absent") },
+                            onClick = { expanded = false; onStatusChange(student, "absent") }
+                        )
+                    }
+                }
+            }
+        }
     }
 
     HorizontalDivider(
@@ -587,6 +757,10 @@ fun StudentAttendanceRow(student: StudentAttendance) {
     )
 }
 
+// ---------------------------------------------------------------------------
+// Data classes / enums
+// ---------------------------------------------------------------------------
+
 data class StudentAttendance(
     val studentId: String,
     val roll: String,
@@ -594,9 +768,11 @@ data class StudentAttendance(
     val status: String
 )
 
-enum class AttendanceFilter {
-    PRESENT, ABSENT
-}
+enum class AttendanceFilter { PRESENT, ABSENT }
+
+// ---------------------------------------------------------------------------
+// Network helpers
+// ---------------------------------------------------------------------------
 
 suspend fun fetchAttendanceSummary(
     teacherId: String,
@@ -607,26 +783,45 @@ suspend fun fetchAttendanceSummary(
             put("teacherId", teacherId)
             put("generatedAt", generatedAt)
         }
-
-        val body = json.toString()
-            .toRequestBody("application/json".toMediaTypeOrNull())
-
-        val response = RetrofitClient.analysisInstance
-            .getAttendanceSummary(body)
+        val body = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
+        val response = RetrofitClient.analysisInstance.getAttendanceSummary(body)
 
         if (response.isSuccessful) {
-            val resString = response.body()?.string()
-            val jsonObj = JSONObject(resString ?: "{}")
+            val jsonObj = JSONObject(response.body()?.string() ?: "{}")
             val dataArray = jsonObj.getJSONArray("data")
-            val list = mutableListOf<JSONObject>()
-
-            for (i in 0 until dataArray.length()) {
-                list.add(dataArray.getJSONObject(i))
-            }
-            list
+            (0 until dataArray.length()).map { dataArray.getJSONObject(it) }
         } else emptyList()
     } catch (e: Exception) {
         e.printStackTrace()
         emptyList()
+    }
+}
+
+suspend fun saveAttendanceChanges(
+    teacherId: String,
+    generatedAt: String,
+    presentList: List<String>,
+    absentList: List<String>
+): Boolean {
+    return try {
+        val json = JSONObject().apply {
+            put("teacherId", teacherId)
+            put("generatedAt", generatedAt)
+            put("present_student", JSONArray(presentList))
+            put("absent_student", JSONArray(absentList))
+        }
+        val body = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
+        val response = RetrofitClient.instance.saveAttendance2(body)
+
+        if (response.isSuccessful) {
+            println("Saved successfully")
+            true
+        } else {
+            println("Save failed: ${response.code()} — ${response.errorBody()?.string()}")
+            false
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        false
     }
 }
