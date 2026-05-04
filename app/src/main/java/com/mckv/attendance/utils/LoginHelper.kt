@@ -13,6 +13,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import com.mckv.attendance.data.local.PermissionManager
 import com.mckv.attendance.data.local.SessionManager
+import com.mckv.attendance.data.model.UserDetails
 import com.mckv.attendance.data.remote.dto.response.LoginResponse
 import com.mckv.attendance.data.remote.dto.response.ProfileResponse
 import com.mckv.attendance.data.remote.dto.response.RolePermissionsResponse
@@ -25,191 +26,153 @@ fun loginUser(
     navController: NavController,
     onComplete: () -> Unit = {}
 ) {
-
-    //CALL TO AUTH API LOGIN
     RetrofitClient.authInstance.loginUser(request)
         .enqueue(object : Callback<ResponseBody> {
             override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                //IF RESPONSE IS SUCCESSFUL
                 if (response.isSuccessful) {
-
-                    //The ? says: "Only try to read the content if the body actually exists.
-                    //If it's empty, just return null instead of crashing the app.
-                    //By default, the data coming over the internet is just a stream of Bytes (0s and 1s).
-                    //.string(): This converts those raw bytes into a readable UTF-8 String
                     val bodyString = response.body()?.string()
-
                     if (!bodyString.isNullOrEmpty()) {
                         try {
-                            //CONVERT THE STRING TO KOTLIN OBJECT
                             val loginResponse = gson.fromJson(bodyString, LoginResponse::class.java)
-
                             if (loginResponse.success && loginResponse.data != null) {
-                                //TOKEN
                                 val token = loginResponse.data.token
-                                //ROLE
-                                val roles = loginResponse.data.role
-
-                                // NOW FETCH PROFILE DATA
+                                // ✅ Pass token forward; don't save session yet
                                 fetchUserProfile(token, context, navController, onComplete)
-
-                                return
+                                return // onComplete() will be called deep in the chain
                             } else {
                                 Toast.makeText(context, "❌ ${loginResponse.message}", Toast.LENGTH_LONG).show()
                             }
-
                         } catch (e: Exception) {
-                            System.out.println("❌ JSON Parsing Error: ${e.message}")
+                            Toast.makeText(context, "❌ Parse error: ${e.message}", Toast.LENGTH_LONG).show()
                         }
                     } else {
                         Toast.makeText(context, "⚠️ Empty response body", Toast.LENGTH_LONG).show()
                     }
-
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Toast.makeText(context, "⚠️ Server Error: $errorBody", Toast.LENGTH_LONG).show()
                 }
-                onComplete()
+                onComplete() // ✅ Always called on any failure path here
             }
-
 
             override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
                 Toast.makeText(context, "🚫 Network error: ${t.message}", Toast.LENGTH_LONG).show()
-
-                onComplete()
+                onComplete() // ✅
             }
         })
 }
 
-// 👇 New function to fetch user profile
 private fun fetchUserProfile(
     token: String,
     context: Context,
     navController: NavController,
     onComplete: () -> Unit = {}
 ) {
-
-    val call = RetrofitClient.authInstance.getProfile("Bearer $token")
-
-    call.enqueue(object : Callback<ResponseBody> {
-        override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-            try {
-                // 1. Start TRY at the very beginning of the response
+    RetrofitClient.authInstance.getProfile("Bearer $token")
+        .enqueue(object : Callback<ResponseBody> {
+            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
                 if (response.isSuccessful) {
                     val bodyString = response.body()?.string()
-
                     if (!bodyString.isNullOrEmpty()) {
-                        val profileJson = gson.fromJson(bodyString, ProfileResponse::class.java)
-
-                        if (profileJson.success && profileJson.data != null) {
-                            // SAVE SESSION
-                            SessionManager.saveSession(token, profileJson.data)
-
-                            // FETCH PERMISSION FOR ROLE
-                            fetchPermissionsForRoles(profileJson.data.role, context, navController, onComplete)
-
-                            return
-                        }else{
-                            Toast.makeText(context, "❌ ${profileJson.success}", Toast.LENGTH_SHORT).show()
+                        try {
+                            val profileJson = gson.fromJson(bodyString, ProfileResponse::class.java)
+                            if (profileJson.success && profileJson.data != null) {
+                                // ✅ Do NOT save session yet — wait until all steps succeed
+                                fetchPermissionsForRoles(
+                                    token = token,
+                                    profile = profileJson.data,
+                                    userRoles = profileJson.data.role,
+                                    context = context,
+                                    navController = navController,
+                                    onComplete = onComplete
+                                )
+                                return // onComplete() will be called by fetchPermissionsForRoles
+                            } else {
+                                Toast.makeText(context, "❌ Profile error: ${profileJson.success}", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "❌ Profile parse error: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
+                    } else {
+                        Toast.makeText(context, "⚠️ Empty profile body", Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    Toast.makeText(context, "⚠️ Server Error: ${response.code()}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "⚠️ Profile Server Error: ${response.code()}", Toast.LENGTH_SHORT).show()
                 }
-            } catch (e: Exception) {
-                println("❌ Parsing Error: ${e.message}")
+                onComplete() // ✅ Always called on any failure path here
             }
-            onComplete()
-        }
 
-        override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-            Toast.makeText(context, "🚫 Network error", Toast.LENGTH_LONG).show()
-            onComplete()
-        }
-    })
-}
-
-// Add this to your utils package
-fun logoutUser(context: Context, navController: NavController?) {
-
-    // Clear token expiry state
-    TokenExpiryManager.setDialogShowing(false)
-
-
-    // Clear session data
-    SessionManager.logout()
-
-    // Navigate to main home screen and clear back stack
-    navController?.navigate("login_screen") {  // Make sure this matches your actual route
-        popUpTo(0) { inclusive = true }
-    }
-
-
-    Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
+            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                Toast.makeText(context, "🚫 Network error (profile)", Toast.LENGTH_LONG).show()
+                onComplete() // ✅
+            }
+        })
 }
 
 private fun fetchPermissionsForRoles(
+    token: String,
+    profile: UserDetails, // use your actual type
     userRoles: List<String>?,
     context: Context,
     navController: NavController,
     onComplete: () -> Unit
 ) {
-
     if (userRoles.isNullOrEmpty()) {
-        println("⚠ Roles are null, cannot fetch permissions")
-        onComplete
+        Toast.makeText(context, "⚠️ No roles found", Toast.LENGTH_SHORT).show()
+        onComplete() // ✅ FIX: was `onComplete` (no parentheses) — never called before!
         return
     }
 
-    val call = RetrofitClient.rolePermissionInstance
+    RetrofitClient.rolePermissionInstance
         .getAllPermissionForRoles(userRoles, "android-secret")
+        .enqueue(object : Callback<ResponseBody> {
+            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                try {
+                    if (response.isSuccessful) {
+                        val bodyString = response.body()?.string()
+                        if (!bodyString.isNullOrEmpty()) {
+                            val roleResponse = gson.fromJson(bodyString, RolePermissionsResponse::class.java)
+                            if (roleResponse.success && roleResponse.data != null) {
+                                val permissionsList = roleResponse.data.map { it.permission }.distinct()
+                                PermissionManager.setPermissions(permissionsList)
 
-    call.enqueue(object : Callback<ResponseBody> {
-        override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                                // ✅ Only save session HERE — after ALL steps succeed
+                                SessionManager.saveSession(token, profile)
 
-            if (response.isSuccessful) {
-                val bodyString = response.body()?.string()
-
-                if (bodyString != null) {
-                    try {
-
-                        val roleResponse = gson.fromJson(bodyString, RolePermissionsResponse::class.java)
-
-                        if (roleResponse.success && roleResponse.data != null) {
-                            //EXTRACT PERMISSION FROM LIST AND RETURN DISTINCT LIST
-                            val permissionsList = roleResponse.data.map { it.permission }.distinct()
-
-                            // ✅ Save permissions
-                            PermissionManager.setPermissions(permissionsList)
-
-                            // ROLES & NAVIGATION
-                            val roles = SessionManager.userDetails?.role ?: emptyList()
-                            val target = if (roles.contains("STUDENT")) "home" else "dynamic_dashboard"
-
-                            navController.navigate(target) {
-                                popUpTo(0) { inclusive = true }
+                                val roles = profile.role ?: emptyList()
+                                val target = if (roles.contains("STUDENT")) "home" else "dynamic_dashboard"
+                                navController.navigate(target) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            } else {
+                                Toast.makeText(context, "❌ Permission fetch failed", Toast.LENGTH_SHORT).show()
                             }
-
                         } else {
-                            println("❌ $roleResponse")
+                            Toast.makeText(context, "⚠️ Empty permissions body", Toast.LENGTH_SHORT).show()
                         }
-
-                    } catch (e: Exception) {
-                        println("❌ Permission: ${e.message}")
-                    }finally {
-                        onComplete()
+                    } else {
+                        // ✅ FIX: onComplete() was missing in this branch before!
+                        Toast.makeText(context, "ERROR: PERMISSIONS", Toast.LENGTH_SHORT).show()
                     }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "NETWORK ERROR", Toast.LENGTH_SHORT).show()
+                } finally {
+                    onComplete() // ✅ Always called regardless of success or failure
                 }
-
-            } else {
-                System.out.println("❌ Permission API Error: ${response.code()}")
             }
-        }
 
-        override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-            println("🚫 Permission API Failure: ${t.message}")
+            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                Toast.makeText(context, "NETWORK ERROR", Toast.LENGTH_LONG).show()
+                onComplete() // ✅
+            }
+        })
+}
 
-            onComplete()
-        }
-    })
+fun logoutUser(context: Context, navController: NavController?) {
+    TokenExpiryManager.setDialogShowing(false)
+    SessionManager.logout()
+    navController?.navigate("login_screen") {
+        popUpTo(0) { inclusive = true }
+    }
+    Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
 }

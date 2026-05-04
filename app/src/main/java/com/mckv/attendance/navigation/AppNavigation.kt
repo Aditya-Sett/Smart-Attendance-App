@@ -43,6 +43,8 @@ import com.mckv.attendance.ui.screens.StudentsAttendanceSummaryScreen
 import com.mckv.attendance.ui.screens.take_attendance.TakeAttendanceScreen2
 //import com.mckv.attendance.ui.screens.TakeAttendanceScreen
 import com.mckv.attendance.ui.screens.UploadCurriculumScreen
+import com.mckv.attendance.ui.screens.give_attendance.GiveAttendanceScreen
+import com.mckv.attendance.ui.screens.student.StudentScreen
 import com.mckv.attendance.ui.screens.take_attendance.TakeAttendanceScreen2
 
 
@@ -72,7 +74,7 @@ fun AppNavigation(navController: NavHostController) {
             ReportGenerateScreen(viewModel)
         }
         composable("home") {
-            HomeScreen(navController)
+            StudentScreen(navController)
         }
         composable("view_analytics") {
             val viewModel: ReportViewModel = viewModel()
@@ -86,6 +88,14 @@ fun AppNavigation(navController: NavHostController) {
             } else {
                 ScheduleScreen(department = department)
             }
+        }
+
+        composable("student_screen") {
+            StudentScreen(navController)
+        }
+
+        composable("give_attendance") {
+            GiveAttendanceScreen(navController)
         }
 
 //        composable("teacher") {
