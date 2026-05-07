@@ -2,6 +2,7 @@ package com.mckv.attendance.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -71,11 +72,15 @@ fun SessionDetailsScreen(navController: NavController) {
     // ----- core state -----
     var studentList by remember { mutableStateOf(listOf<StudentAttendance>()) }
     var editableList by remember { mutableStateOf(listOf<StudentAttendance>()) }
-    val editedStudentIds = remember { mutableStateListOf<String>() }
+
+    // originalStatusMap: stores the server-fetched status for each student.
+    // A student's row is highlighted ONLY when current status ≠ original status.
+    // Uses mutableStateMapOf so Compose tracks individual key reads and
+    // triggers recomposition of any row whose entry changes.
+    val originalStatusMap = remember { mutableStateMapOf<String, String>() }
 
     var filteredList by remember { mutableStateOf(listOf<StudentAttendance>()) }
 
-    // FIX: Separate loading states — initial page load vs save-in-progress
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
 
@@ -91,26 +96,38 @@ fun SessionDetailsScreen(navController: NavController) {
 
     var showSaveDialog by remember { mutableStateOf(false) }
 
-    // FIX: reloadTrigger forces re-fetch from API after a successful save
     var reloadTrigger by remember { mutableStateOf(0) }
 
     val scope = rememberCoroutineScope()
 
     // ----- load / reload from API -----
-    // Runs on first composition AND whenever reloadTrigger increments
     LaunchedEffect(reloadTrigger) {
         isLoading = true
         val rawData = fetchAttendanceSummary(teacherId, generatedAt)
-        val loaded = rawData.map {
-            StudentAttendance(
-                studentId = it.getString("studentId"),
-                roll = it.getString("collegeRoll"),
-                name = it.getString("username"),
-                status = it.getString("status")
-            )
+
+        // Deduplicate by studentId to prevent inconsistent counts caused
+        // by the server returning duplicate rows across repeated requests.
+        val seen = mutableSetOf<String>()
+        val loaded = rawData.mapNotNull {
+            val id = it.getString("studentId")
+            if (seen.add(id)) {
+                StudentAttendance(
+                    studentId = id,
+                    roll = it.getString("collegeRoll"),
+                    name = it.getString("username"),
+                    status = it.getString("status")
+                )
+            } else null
         }
+
         studentList = loaded
         editableList = loaded
+
+        // Populate originalStatusMap so highlight comparison always uses
+        // the server-side ground truth. Clear first to remove stale keys.
+        originalStatusMap.clear()
+        loaded.forEach { originalStatusMap[it.studentId] = it.status }
+
         isLoading = false
     }
 
@@ -142,12 +159,21 @@ fun SessionDetailsScreen(navController: NavController) {
     val totalCount   = editableList.size
     val attendancePercentage = if (totalCount > 0) (presentCount * 100f / totalCount) else 0f
 
+    // editedStudentIds: computed directly (NO remember cache) so it always
+    // reflects the live editableList vs originalStatusMap comparison.
+    // A student is "edited" only when their current status differs from the
+    // server-fetched original — toggling back removes them from this set.
+    val editedStudentIds: Set<String> = editableList
+        .filter { originalStatusMap[it.studentId] != it.status }
+        .map { it.studentId }
+        .toSet()
+
+    // Back-press in edit mode with unsaved changes → show save dialog
     BackHandler(enabled = isEditMode && hasChanges) {
         showSaveDialog = true
     }
 
-    // ----- FIX: Full-screen saving overlay -----
-    // Shown on top of everything while the API call is in-flight
+    // ----- Full-screen saving overlay -----
     if (isSaving) {
         Dialog(
             onDismissRequest = { /* not dismissible while saving */ },
@@ -219,26 +245,26 @@ fun SessionDetailsScreen(navController: NavController) {
                     }
 
                     IconButton(onClick = {
-                        isEditMode = !isEditMode
-                        if (!isEditMode) {
+                        if (isEditMode) {
                             // Cancel — restore to last saved state
                             editableList = studentList
                             presentStudents.clear()
                             absentStudents.clear()
-                            editedStudentIds.clear()
                             hasChanges = false
                         }
+                        isEditMode = !isEditMode
                     }) {
                         Icon(
                             if (isEditMode) Icons.Default.Close else Icons.Default.Edit,
-                            contentDescription = "Edit"
+                            contentDescription = if (isEditMode) "Cancel Edit" else "Edit"
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = AttendanceColors.Primary,
                     titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color.White
                 )
             )
         }
@@ -250,7 +276,6 @@ fun SessionDetailsScreen(navController: NavController) {
                 .padding(paddingValues)
         ) {
             if (isLoading) {
-                // Initial / reload spinner — full screen
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = AttendanceColors.Primary)
@@ -493,7 +518,7 @@ fun SessionDetailsScreen(navController: NavController) {
                                 TableHeaderCell(text = "Student Name", modifier = Modifier.weight(3f))
                                 TableHeaderCell(
                                     text = "Status",
-                                    modifier = Modifier.weight(1.5f),
+                                    modifier = Modifier.weight(2f),
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -521,26 +546,36 @@ fun SessionDetailsScreen(navController: NavController) {
                             } else {
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                                     items(filteredList, key = { it.studentId }) { student ->
+                                        // isEdited: true only when current status differs from the
+                                        // original server-fetched status. Toggling back to original
+                                        // makes this false and removes the yellow highlight.
+                                        val isEdited = originalStatusMap[student.studentId] != student.status
+
                                         StudentAttendanceRow(
                                             student = student,
                                             isEditMode = isEditMode,
-                                            isEdited = student.studentId in editedStudentIds,
-                                            onStatusChange = { stu, newStatus ->
+                                            isEdited = isEdited,
+                                            onStatusToggle = { stu ->
+                                                // Flip present ↔ absent
+                                                val newStatus = if (stu.status == "present") "absent" else "present"
+
                                                 editableList = editableList.map {
                                                     if (it.studentId == stu.studentId) it.copy(status = newStatus) else it
                                                 }
-                                                hasChanges = true
 
-                                                if (!editedStudentIds.contains(stu.studentId)) {
-                                                    editedStudentIds.add(stu.studentId)
-                                                }
-
+                                                // Keep present/absent tracking lists in sync
                                                 if (newStatus == "present") {
                                                     if (!presentStudents.contains(stu.studentId)) presentStudents.add(stu.studentId)
                                                     absentStudents.remove(stu.studentId)
                                                 } else {
                                                     if (!absentStudents.contains(stu.studentId)) absentStudents.add(stu.studentId)
                                                     presentStudents.remove(stu.studentId)
+                                                }
+
+                                                // hasChanges: true only if at least one student
+                                                // still differs from their original status
+                                                hasChanges = editableList.any {
+                                                    originalStatusMap[it.studentId] != it.status
                                                 }
                                             }
                                         )
@@ -554,29 +589,26 @@ fun SessionDetailsScreen(navController: NavController) {
         }
     }
 
-    // Save confirmation dialog
+    // Save / Discard confirmation dialog
+    // Triggered by: tapping the Save icon OR pressing the system back button
     if (showSaveDialog) {
         AlertDialog(
             onDismissRequest = { showSaveDialog = false },
-            title = { Text("Confirm") },
-            text = { Text("Do you want to save the changes?") },
+            title = { Text("Unsaved Changes") },
+            text = { Text("Do you want to save the changes you made?") },
             confirmButton = {
                 TextButton(onClick = {
                     showSaveDialog = false
 
-                    // Capture lists before clearing
                     val presentSnapshot = presentStudents.toList()
                     val absentSnapshot  = absentStudents.toList()
 
-                    // FIX: Clear edit UI state immediately so user sees non-edit view
                     isEditMode = false
                     hasChanges = false
                     presentStudents.clear()
                     absentStudents.clear()
-                    editedStudentIds.clear()
 
                     scope.launch {
-                        // FIX: Show full-screen saving indicator
                         isSaving = true
 
                         val success = saveAttendanceChanges(
@@ -589,19 +621,31 @@ fun SessionDetailsScreen(navController: NavController) {
                         isSaving = false
 
                         if (success) {
-                            // FIX: Trigger a real reload from the API/DB to get fresh data
                             reloadTrigger++
                         } else {
-                            // On failure: restore editable state so the user doesn't lose their work
+                            // Restore on failure so user doesn't lose work
                             editableList = studentList
                         }
                     }
                 }) {
-                    Text("Yes")
+                    Text("Save", color = AttendanceColors.Primary, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showSaveDialog = false }) { Text("No") }
+                // Discard: revert all changes, exit edit mode, then navigate back.
+                // Previously this only reset state but never called navigateUp(),
+                // so the user was stuck on the same screen after choosing Discard.
+                TextButton(onClick = {
+                    showSaveDialog = false
+                    editableList = studentList
+                    presentStudents.clear()
+                    absentStudents.clear()
+                    hasChanges = false
+                    isEditMode = false
+                    navController.navigateUp() // ← KEY FIX: actually go back
+                }) {
+                    Text("Discard", color = AttendanceColors.Error)
+                }
             }
         )
     }
@@ -660,13 +704,17 @@ fun StudentAttendanceRow(
     student: StudentAttendance,
     isEditMode: Boolean,
     isEdited: Boolean,
-    onStatusChange: (StudentAttendance, String) -> Unit
+    // Simple toggle callback — no three-dot menu, no explicit newStatus parameter.
+    // In edit mode the status chip itself is the toggle button.
+    onStatusToggle: (StudentAttendance) -> Unit
 ) {
     val isPresent = student.status == "present"
     val statusColor   = if (isPresent) AttendanceColors.Success else AttendanceColors.Error
     val statusBgColor = if (isPresent) AttendanceColors.PresentBg else AttendanceColors.AbsentBg
-    var expanded by remember { mutableStateOf(false) }
 
+    // Row background: yellow highlight only when isEdited == true.
+    // If the user toggles a student back to their original status,
+    // isEdited becomes false and the yellow immediately disappears.
     val rowBg = when {
         isEdited  -> AttendanceColors.EditedHighlight
         isPresent -> AttendanceColors.PresentBg.copy(alpha = 0.3f)
@@ -706,43 +754,51 @@ fun StudentAttendanceRow(
             overflow = TextOverflow.Ellipsis
         )
 
+        // Status chip — acts as a toggle button in edit mode.
+        // No three-dot menu. Tapping flips present ↔ absent instantly.
         Box(
-            modifier = Modifier.weight(1.5f).padding(horizontal = 4.dp),
+            modifier = Modifier
+                .weight(2f)
+                .padding(horizontal = 4.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
                     .background(statusBgColor, RoundedCornerShape(20.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .then(
+                        if (isEditMode) {
+                            Modifier
+                                .border(
+                                    width = 1.5.dp,
+                                    color = statusColor.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+                                .clickable { onStatusToggle(student) }
+                        } else Modifier
+                    )
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = if (isPresent) "PRESENT" else "ABSENT",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = statusColor,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Clip
-                )
-            }
-        }
-
-        if (isEditMode) {
-            Box {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More")
-                }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    if (student.status == "absent") {
-                        DropdownMenuItem(
-                            text = { Text("Mark as Present") },
-                            onClick = { expanded = false; onStatusChange(student, "present") }
-                        )
-                    } else {
-                        DropdownMenuItem(
-                            text = { Text("Mark as Absent") },
-                            onClick = { expanded = false; onStatusChange(student, "absent") }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = if (isPresent) "PRESENT" else "ABSENT",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = statusColor,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Clip
+                    )
+                    // Small swap icon hints the chip is tappable in edit mode
+                    if (isEditMode) {
+                        Icon(
+                            imageVector = Icons.Default.SwapVert,
+                            contentDescription = "Toggle status",
+                            modifier = Modifier.size(12.dp),
+                            tint = statusColor.copy(alpha = 0.7f)
                         )
                     }
                 }

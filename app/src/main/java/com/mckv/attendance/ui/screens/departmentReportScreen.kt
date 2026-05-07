@@ -1166,6 +1166,7 @@ fun parseJson(json: String): DepartmentResponse {
         academic_years = yearsList
     )
 }*/
+
 package com.mckv.attendance.ui.screens
 
 import android.graphics.Color
@@ -1251,7 +1252,6 @@ class ReportViewModel : ViewModel() {
                     val body = response.body()
                     val jsonString = body?.string()
                     data = if (!jsonString.isNullOrEmpty()) parseJson(jsonString) else null
-                    // FIX: Auto-select the first available year after data loads
                     data?.academic_years?.firstOrNull()?.let { firstYear ->
                         if (selectedYear.isEmpty() || data?.academic_years?.none { it.year == selectedYear } == true) {
                             selectedYear = firstYear.year
@@ -1261,11 +1261,9 @@ class ReportViewModel : ViewModel() {
                     data = null
                 }
             } catch (e: Exception) {
-                // FIX: Always reset isLoading in catch block too (was missing before)
                 e.printStackTrace()
                 data = null
             } finally {
-                // FIX: isLoading is now guaranteed to reset even on exception
                 isLoading = false
             }
         }
@@ -1341,7 +1339,6 @@ fun SectionHeader(title: String) {
 
 @Composable
 fun KPISection(data: DepartmentResponse?) {
-    // FIX: Safe null-check with safe default list to avoid crash during recomposition
     val values = data?.academic_years
         ?.flatMap { it.semesters }
         ?.map { it.overall_percentage }
@@ -1413,41 +1410,66 @@ fun GraphCard(viewModel: ReportViewModel) {
     val data = viewModel.data
 
     if (data == null || data.academic_years.isEmpty()) {
-        Text("Loading...")
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("No data available")
+        }
         return
     }
 
     val year = data.academic_years.find { it.year == viewModel.selectedYear }
 
     if (year == null || year.semesters.isEmpty()) {
-        Text("No data available")
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("No data for selected year")
+        }
         return
     }
 
+    // ✅ FIX: Track readiness flags so charts never render before data is set
     val modelProducer = remember { ChartEntryModelProducer() }
     val subjectModelProducer = remember { ChartEntryModelProducer() }
+
+    var isMainChartReady by remember { mutableStateOf(false) }
+    var isSubjectChartReady by remember { mutableStateOf(false) }
     var selectedSemester by remember { mutableStateOf<Semester?>(null) }
 
+    // ✅ FIX: Reset flags when year changes, set AFTER entries are loaded
     LaunchedEffect(year) {
+        isMainChartReady = false
+        isSubjectChartReady = false
         selectedSemester = null
-        modelProducer.setEntries(
-            year.semesters.mapIndexed { index, sem ->
-                FloatEntry(index.toFloat(), sem.overall_percentage.toFloat())
-            }
-        )
+
+        val entries = year.semesters.mapIndexed { index, sem ->
+            FloatEntry(index.toFloat(), sem.overall_percentage.toFloat())
+        }
+
+        if (entries.isNotEmpty()) {
+            modelProducer.setEntries(entries)
+            isMainChartReady = true  // ✅ Only show chart AFTER data is ready
+        }
     }
 
+    // ✅ FIX: Only set subject entries when semester has subjects, never set empty
     LaunchedEffect(selectedSemester) {
         val semester = selectedSemester
+        isSubjectChartReady = false  // reset first
+
         if (semester != null && semester.subjects.isNotEmpty()) {
-            subjectModelProducer.setEntries(
-                semester.subjects.mapIndexed { index, sub ->
-                    FloatEntry(index.toFloat(), sub.percentage.toFloat())
-                }
-            )
-        } else {
-            // ✅ Prevent stale/crash state
-            subjectModelProducer.setEntries(emptyList<FloatEntry>())
+            val entries = semester.subjects.mapIndexed { index, sub ->
+                FloatEntry(index.toFloat(), sub.percentage.toFloat())
+            }
+            subjectModelProducer.setEntries(entries)
+            isSubjectChartReady = true  // ✅ Only show after data is ready
         }
     }
 
@@ -1520,39 +1542,47 @@ fun GraphCard(viewModel: ReportViewModel) {
 
             Text("Semester Performance", fontWeight = FontWeight.Bold)
 
-            Chart(
-                chart = columnChart(
-                    columns = columnComponents,
-                    spacing = 32.dp,
-                    dataLabel = labelComponent,
-                    axisValuesOverrider = AxisValuesOverrider.fixed(minY = 0f, maxY = 100f)
-                ),
-                chartModelProducer = modelProducer,
-                startAxis = semesterStartAxis,
-                bottomAxis = semesterBottomAxis,
-                modifier = Modifier
-                    .height(250.dp)
-                    .fillMaxWidth()
-                    .padding(top = 20.dp)
-                    .pointerInput(year.semesters.size) {
-                        detectTapGestures { offset ->
-
-                            val count = year.semesters.size
-                            if (count == 0 || size.width <= 0f) return@detectTapGestures
-
-                            val itemWidth = size.width / count
-
-                            val rawIndex = (offset.x / itemWidth).toInt()
-
-                            // ✅ CRASH FIX: Clamp index safely
-                            val safeIndex = rawIndex.coerceIn(0, count - 1)
-
-                            selectedSemester = year.semesters.getOrNull(safeIndex)
+            // ✅ FIX: Only render Chart after modelProducer has data
+            if (isMainChartReady) {
+                Chart(
+                    chart = columnChart(
+                        columns = columnComponents,
+                        spacing = 32.dp,
+                        dataLabel = labelComponent,
+                        axisValuesOverrider = AxisValuesOverrider.fixed(minY = 0f, maxY = 100f)
+                    ),
+                    chartModelProducer = modelProducer,
+                    startAxis = semesterStartAxis,
+                    bottomAxis = semesterBottomAxis,
+                    modifier = Modifier
+                        .height(250.dp)
+                        .fillMaxWidth()
+                        .padding(top = 20.dp)
+                        .pointerInput(year.semesters.size) {
+                            detectTapGestures { offset ->
+                                val count = year.semesters.size
+                                if (count == 0 || size.width <= 0f) return@detectTapGestures
+                                val itemWidth = size.width / count
+                                val rawIndex = (offset.x / itemWidth).toInt()
+                                val safeIndex = rawIndex.coerceIn(0, count - 1)
+                                selectedSemester = year.semesters.getOrNull(safeIndex)
+                            }
                         }
-                    }
-            )
+                )
+            } else {
+                // ✅ Placeholder while chart data loads
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
 
-            if (selectedSemester != null && subjectColumns.isNotEmpty()) {
+            // ✅ FIX: Only render subject chart after subjectModelProducer has data
+            if (selectedSemester != null && isSubjectChartReady && subjectColumns.isNotEmpty()) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -1667,8 +1697,6 @@ fun parseJson(json: String): DepartmentResponse {
     }
 
     return DepartmentResponse(
-        // FIX: was previously parsing "department" key correctly but now explicitly
-        // uses optString with a safe fallback instead of relying on implicit empty string
         department = obj.optString("department", "Unknown"),
         academic_years = yearsList
     )
