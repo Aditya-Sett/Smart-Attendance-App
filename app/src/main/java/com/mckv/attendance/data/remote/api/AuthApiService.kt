@@ -21,6 +21,43 @@ interface AuthApiService {
     fun forgotPassword(@Query("email") email: String): Call<ResponseBody>
 
     @POST("api/auth/verify-password-email")
-    fun verifyPasswordEmail(@Query("email") email: String,
-                            @Query("otp") otp: String): Call<ResponseBody>
+    fun verifyPasswordEmail(
+        @Query("email") email: String,
+        @Query("otp") otp: String
+    ): Call<ResponseBody>
+
+    // 🔹 SEND VERIFICATION CODE (GET)
+    @GET("api/auth/verify-email-code")
+    fun sendEmailVerificationCode(
+        @Query("email") email: String
+    ): Call<ResponseBody>
+
+
+    // 🔹 VERIFY CODE (POST)
+    @POST("api/auth/verify-email-code")
+    fun verifyEmailCode(
+        @Body body: Map<String, String>
+    ): Call<ResponseBody>
+
+
+    /*// 🔹 REGISTER STUDENT
+    @POST("api/auth/register-student")
+    fun registerStudent(
+        @Body body: Map<String, Any>
+    ): Call<ResponseBody>
+
+
+    // 🔹 REGISTER FACULTY
+    @POST("api/auth/register-faculty")
+    fun registerFaculty(
+        @Body body: Map<String, Any>
+    ): Call<ResponseBody>
+
+     */
+
+    @POST("api/auth/register-student")
+    fun registerStudent(@Body request: Map<String, String>): Call<ResponseBody>
+
+    @POST("api/auth/register-faculty")
+    fun registerFaculty(@Body request: Map<String, String>): Call<ResponseBody>
 }

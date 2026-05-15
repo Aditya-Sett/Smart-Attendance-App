@@ -46,6 +46,7 @@ import com.mckv.attendance.ui.screens.UploadCurriculumScreen
 import com.mckv.attendance.ui.screens.give_attendance.GiveAttendanceScreen
 import com.mckv.attendance.ui.screens.student.StudentScreen
 import com.mckv.attendance.ui.screens.take_attendance.TakeAttendanceScreen2
+import com.mckv.attendance.ui.screens.SignupScreen
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -79,6 +80,9 @@ fun AppNavigation(navController: NavHostController) {
         composable("view_analytics") {
             val viewModel: ReportViewModel = viewModel()
             ReportScreen(navController,viewModel = viewModel)
+        }
+        composable("signup") {
+            SignupScreen(navController)
         }
         composable("schedule") {
             //ScheduleScreen(department = "CSE")
@@ -209,4 +213,9 @@ fun AppNavigation(navController: NavHostController) {
 
 
     }
+}
+
+@Composable
+fun LoginScreen(x0: NavHostController) {
+    TODO("Not yet implemented")
 }

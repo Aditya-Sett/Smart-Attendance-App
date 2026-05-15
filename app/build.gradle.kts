@@ -99,7 +99,7 @@ dependencies {
     implementation("com.patrykandpatrick.vico:core:1.13.1")
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
     implementation(libs.androidx.room.runtime.android)
-    implementation(libs.protolite.well.known.types)
+    //implementation(libs.protolite.well.known.types)
     //implementation(libs.androidx.compose.material)
     //implementation(libs.androidx.camera.camera2.pipe)
     testImplementation(libs.junit)
