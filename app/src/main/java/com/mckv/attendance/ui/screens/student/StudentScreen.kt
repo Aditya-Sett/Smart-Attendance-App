@@ -110,8 +110,8 @@ fun StudentScreen(
             StudentActionButtons(
                 bluetoothChecking = uiState.bluetoothChecking,
                 bluetoothEnabled = uiState.bluetoothEnabled, // Add this line
-                onSchedule = { navController.navigate("schedule") },
-                onHistory = { navController.navigate("attendance_summary") },
+//                onSchedule = { navController.navigate("schedule") },
+//                onHistory = { navController.navigate("attendance_summary") },
                 onGiveAttendance = { navController.navigate("give_attendance") }
             )
 
@@ -350,23 +350,23 @@ private fun StatusCard(
 private fun StudentActionButtons(
     bluetoothChecking: Boolean,
     bluetoothEnabled: Boolean,
-    onSchedule: () -> Unit,
-    onHistory: () -> Unit,
+//    onSchedule: () -> Unit,
+//    onHistory: () -> Unit,
     onGiveAttendance: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ActionButton(
-            label = "📅  View Schedule",
-            onClick = onSchedule,
-            enabled = !bluetoothChecking,
-            containerColor = Color(0xFF1E88E5)
-        )
-        ActionButton(
-            label = "📊  Attendance History",
-            onClick = onHistory,
-            enabled = !bluetoothChecking,
-            containerColor = Color(0xFF43A047)
-        )
+//        ActionButton(
+//            label = "📅  View Schedule",
+//            onClick = onSchedule,
+//            enabled = !bluetoothChecking,
+//            containerColor = Color(0xFF1E88E5)
+//        )
+//        ActionButton(
+//            label = "📊  Attendance History",
+//            onClick = onHistory,
+//            enabled = !bluetoothChecking,
+//            containerColor = Color(0xFF43A047)
+//        )
         ActionButton(
             label = "✋  Give Attendance",
             onClick = onGiveAttendance,

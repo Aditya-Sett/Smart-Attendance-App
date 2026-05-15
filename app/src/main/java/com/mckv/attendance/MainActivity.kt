@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
         }
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             location?.let {
-                Toast.makeText(this, "Lat: ${it.latitude}\n Lon: ${it.longitude}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Lat: ${it.latitude}\n Lon: ${it.longitude}", Toast.LENGTH_SHORT).show()
             }
             addGeofence()
         }
@@ -126,8 +126,8 @@ class MainActivity : ComponentActivity() {
         }
         geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)
             .addOnSuccessListener {
-                Log.d("Geofence", "Geofence added")
-                Toast.makeText(this, " Geofence Added\nLat: 22.842058\n Lon: 88.359271", Toast.LENGTH_LONG).show()
+//                Log.d("Geofence", "Geofence added")
+//                Toast.makeText(this, " Geofence Added\nLat: 22.842058\n Lon: 88.359271", Toast.LENGTH_LONG).show()
             }
             .addOnFailureListener {
                 Log.e("Geofence", "Error: ${it.message}")

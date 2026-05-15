@@ -901,7 +901,8 @@ fun SignupScreen(navController: NavController) {
                             onValueChange = { userId = it },
                             label = "User ID",
                             icon = Icons.Default.Person,
-                            primaryColor = primaryColor
+                            primaryColor = primaryColor,
+                            placeholder = "e.g. U1224082"
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -991,16 +992,16 @@ fun SignupScreen(navController: NavController) {
                             )
                         )
 
-                        if (selectedType == "FACULTY") {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            DropdownMenuBox(
-                                options = facultyRoles,
-                                selected = role,
-                                onSelect = { role = it },
-                                label = "Faculty Role",
-                                icon = Icons.Default.Work
-                            )
-                        }
+//                        if (selectedType == "FACULTY") {
+//                            Spacer(modifier = Modifier.height(12.dp))
+//                            DropdownMenuBox(
+//                                options = facultyRoles,
+//                                selected = role,
+//                                onSelect = { role = it },
+//                                label = "Faculty Role",
+//                                icon = Icons.Default.Work
+//                            )
+//                        }
 
                         if (selectedType == "STUDENT") {
                             Spacer(modifier = Modifier.height(12.dp))
@@ -1009,7 +1010,8 @@ fun SignupScreen(navController: NavController) {
                                 onValueChange = { collegeRoll = it },
                                 label = "College Roll Number",
                                 icon = Icons.Default.School,
-                                primaryColor = primaryColor
+                                primaryColor = primaryColor,
+                                placeholder = "e.g. BTECH/CSEDS/24/082"
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             DropdownMenuBox(
@@ -1054,14 +1056,23 @@ fun SignupScreen(navController: NavController) {
                                         .enqueue(object : Callback<ResponseBody> {
                                             override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
                                                 loading = false
-                                                val body = response.body()?.string()
-                                                val json = JSONObject(body)
-                                                val message = json.getString("message")
+
                                                 if (response.isSuccessful) {
-                                                    Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
+                                                    val body = response.body()?.string()
+                                                    val json = JSONObject(body ?: "{}")
+                                                    val message = json.optString("message", "Registration successful!")
+                                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
                                                     navController.popBackStack()
                                                 } else {
-                                                    Toast.makeText(context, "$message", Toast.LENGTH_SHORT).show()
+                                                    // Error body is in errorBody(), not body()
+                                                    val errorBody = response.errorBody()?.string()
+                                                    val message = try {
+                                                        JSONObject(errorBody ?: "{}").optString("message", "Registration failed")
+                                                    } catch (e: Exception) {
+                                                        "Registration failed"
+                                                    }
+                                                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                                                 }
                                             }
                                             override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
@@ -1084,15 +1095,23 @@ fun SignupScreen(navController: NavController) {
                                         .registerFaculty(request)
                                         .enqueue(object : Callback<ResponseBody> {
                                             override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                                                val body = response.body()?.string()
-                                                val json = JSONObject(body)
-                                                val message = json.getString("message")
                                                 loading = false
+
                                                 if (response.isSuccessful) {
-                                                    Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
+                                                    val body = response.body()?.string()
+                                                    val json = JSONObject(body ?: "{}")
+                                                    val message = json.optString("message", "Registration successful!")
+                                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                                     navController.popBackStack()
                                                 } else {
-                                                    println("Registration failed\n******\n******\n******$response")
+                                                    // Error body is in errorBody(), not body()
+                                                    val errorBody = response.errorBody()?.string()
+                                                    val message = try {
+                                                        JSONObject(errorBody ?: "{}").optString("message", "Registration failed")
+                                                    } catch (e: Exception) {
+                                                        "Registration failed"
+                                                    }
+                                                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                                                 }
                                             }
                                             override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
@@ -1176,12 +1195,14 @@ private fun StyledTextField(
     onValueChange: (String) -> Unit,
     label: String,
     icon: ImageVector,
-    primaryColor: Color
+    primaryColor: Color,
+    placeholder: String = ""          // optional, empty by default
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        placeholder = if (placeholder.isNotEmpty()) {{ Text(placeholder) }} else null,
         leadingIcon = { Icon(icon, contentDescription = null, tint = primaryColor) },
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
