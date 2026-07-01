@@ -797,7 +797,7 @@ fun SignupScreen(navController: NavController) {
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val departments = listOf("BSH", "CSEDS", "CSE", "IT", "ME", "AUE", "EE", "ECE", "CSEAIML")
+    val departments = listOf("BSH", "CSE-AIML", "CSE-DS", "CSE", "IT", "ME", "AUE", "EE", "ECE")
     val semesters = (1..8).map { it.toString() }
     val facultyRoles = listOf("TEACHER", "LIBRARIAN")
 
@@ -913,7 +913,7 @@ fun SignupScreen(navController: NavController) {
                             icon = Icons.Default.Badge,
                             primaryColor = primaryColor
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        /*Spacer(modifier = Modifier.height(12.dp))
 
                         StyledTextField(
                             value = contact,
@@ -921,7 +921,7 @@ fun SignupScreen(navController: NavController) {
                             label = "Contact Number",
                             icon = Icons.Default.Phone,
                             primaryColor = primaryColor
-                        )
+                        )*/
                         Spacer(modifier = Modifier.height(12.dp))
 
                         // ✅ FIX 1: Use ExposedDropdownMenuBox — the correct M3 API
@@ -1011,7 +1011,7 @@ fun SignupScreen(navController: NavController) {
                                 label = "College Roll Number",
                                 icon = Icons.Default.School,
                                 primaryColor = primaryColor,
-                                placeholder = "e.g. BTECH/CSEDS/24/082"
+                                placeholder = "e.g. BTECH/CSE-DS/24/082"
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             DropdownMenuBox(
@@ -1044,7 +1044,7 @@ fun SignupScreen(navController: NavController) {
                                         "username" to username,
                                         "department" to department,
                                         "email" to email,
-                                        "contact" to contact,
+                                        //"contact" to contact,
                                         "password" to password,
                                         "confirmPassword" to confirmPassword,
                                         "studentId" to userId,
@@ -1086,7 +1086,7 @@ fun SignupScreen(navController: NavController) {
                                         "username" to username,
                                         "department" to department,
                                         "email" to email,
-                                        "contact" to contact,
+                                        //"contact" to contact,
                                         "password" to password,
                                         "confirmPassword" to confirmPassword,
                                         //"role" to role

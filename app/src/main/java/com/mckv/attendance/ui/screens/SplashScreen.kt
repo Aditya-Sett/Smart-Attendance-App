@@ -125,6 +125,15 @@ private fun redirectToMainHome(navController: NavController, reason: String = ""
         popUpTo("splash_screen") { inclusive = true }
     }
 }*/
+
+
+
+
+
+
+
+
+/*
 package com.mckv.attendance.ui.screens
 
 import android.widget.Toast
@@ -305,6 +314,213 @@ fun SplashScreen(navController: NavController) {
                     modifier = Modifier.size(20.dp)
                 )
             }
+        }
+    }
+}
+
+ */
+
+
+
+
+
+
+
+package com.mckv.attendance.ui.screens
+
+import android.app.Activity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.mckv.attendance.ReportConfigManager.RemoteConfigManager
+import com.mckv.attendance.data.local.SessionManager
+import com.mckv.attendance.utils.DeveloperOptionsChecker
+import kotlinx.coroutines.delay
+
+@Composable
+fun SplashScreen(navController: NavController) {
+
+    val context = LocalContext.current
+
+    // ✅ Tracks whether to show the dev mode dialog
+    var showDevModeDialog by remember { mutableStateOf(false) }
+
+    // ================= LOGIC =================
+    LaunchedEffect(Unit) {
+        RemoteConfigManager.init()
+        RemoteConfigManager.fetchSuspend()
+        delay(3000)
+
+        // 🔐 Check developer mode AFTER splash completes
+        if (DeveloperOptionsChecker.isDeveloperModeEnabled(context)) {
+            showDevModeDialog = true
+            return@LaunchedEffect  // ⛔ Stop navigation until user acts
+        }
+
+        // ✅ Proceed normally if dev mode is off
+        navigateFromSplash(navController)
+    }
+
+    // ================= DEV MODE DIALOG =================
+    if (showDevModeDialog) {
+        DeveloperModeBlockDialog(
+            onCloseApp = {
+                (context as? Activity)?.finishAffinity()
+            }
+        )
+    }
+
+    // ================= ANIMATION =================
+    val infiniteTransition = rememberInfiniteTransition(label = "")
+
+    val floatAnim by infiniteTransition.animateFloat(
+        initialValue = -8f,
+        targetValue = 8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = EaseInOut),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = ""
+    )
+
+    val scale = remember { Animatable(0.9f) }
+    val alpha = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        scale.animateTo(1f, tween(800, easing = EaseOutBack))
+        alpha.animateTo(1f, tween(800))
+    }
+
+    // ================= UI =================
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFF5F9FF),
+                        Color(0xFFE3F2FD)
+                    )
+                )
+            )
+    ) {
+        Box(
+            modifier = Modifier
+                .size(180.dp)
+                .align(Alignment.TopEnd)
+                .offset(x = 60.dp, y = (-40).dp)
+                .clip(CircleShape)
+                .background(Color(0xFF64B5F6))
+        )
+        Box(
+            modifier = Modifier
+                .size(260.dp)
+                .align(Alignment.BottomStart)
+                .offset(x = (-80).dp, y = 80.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF90CAF9))
+        )
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .align(Alignment.TopEnd)
+                .offset(x = (-50).dp, y = 70.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF1E88E5))
+        )
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .align(Alignment.CenterEnd)
+                .offset(x = (-30).dp)
+                .clip(CircleShape)
+                .background(Color(0xFF42A5F5))
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .offset(y = floatAnim.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "EDU-One+",
+                color = Color(0xFF0D47A1),
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.SansSerif,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = scale.value
+                    scaleY = scale.value
+                    this.alpha = alpha.value
+                }
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            AnimatedVisibility(
+                visible = alpha.value > 0.6f,
+                enter = fadeIn(tween(600))
+            ) {
+                Text(
+                    text = "Powerful and intuitive Education\nManagement Software",
+                    color = Color.DarkGray,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(30.dp))
+            AnimatedVisibility(
+                visible = alpha.value > 0.9f,
+                enter = fadeIn(tween(600))
+            ) {
+                CircularProgressIndicator(
+                    color = Color(0xFF1E88E5),
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+// ✅ Extracted navigation logic for reuse
+private fun navigateFromSplash(navController: NavController) {
+    val isLoggedIn = SessionManager.isLoggedIn &&
+            !SessionManager.authToken.isNullOrEmpty() &&
+            !SessionManager.isTokenExpired()
+
+    if (isLoggedIn) {
+        val roles = SessionManager.userDetails?.role ?: emptyList()
+        val target = when {
+            roles.contains("STUDENT") -> "home"
+            roles.isNotEmpty() -> "dynamic_dashboard"
+            else -> "login_screen"
+        }
+        navController.navigate(target) {
+            popUpTo("splash_screen") { inclusive = true }
+        }
+    } else {
+        SessionManager.logout()
+        navController.navigate("login_screen") {
+            popUpTo("splash_screen") { inclusive = true }
         }
     }
 }

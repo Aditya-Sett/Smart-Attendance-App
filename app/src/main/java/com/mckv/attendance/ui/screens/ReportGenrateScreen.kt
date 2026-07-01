@@ -38,7 +38,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.data.remote.RetrofitClient
-import com.mckv.attendance.data.remote.RetrofitClient.BASE_ANALYSIS_URL
+import com.mckv.attendance.ReportConfigManager.RemoteConfigManager
 import androidx.core.net.toUri
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -337,13 +337,13 @@ fun ReportGenerateScreen(viewModel: ReportGenetateViewModel) {
                             }
                         }
 
-                        AutoCompleteField("Department *", listOf("CSE", "CSEDS", "CSEAIML", "IT", "EE", "ECE", "ME", "AUE"), department, { department = it }, Icons.Default.Business)
+                        AutoCompleteField("Department *", listOf("CSE", "CSE-DS", "CSE-AIML", "IT", "EE", "ECE", "ME", "AUE"), department, { department = it }, Icons.Default.Business)
                         Spacer(Modifier.height(12.dp))
-                        AutoCompleteField("Academic Year *", listOf("2025-26", "2024-25", "2023-24", "2022-23"), year, { year = it }, Icons.Default.CalendarToday)
+                        AutoCompleteField("Academic Year *", listOf("2025-26", "2024-25"), year, { year = it }, Icons.Default.CalendarToday)
                         Spacer(Modifier.height(12.dp))
                         AutoCompleteField("Semester *", listOf("1st","2nd","3rd","4th","5th", "6th","7th", "8th"), sem, { sem = it }, Icons.Default.Grade)
                         Spacer(Modifier.height(12.dp))
-                        AutoCompleteField("Subject *", listOf("HM-HU101", "HM-HU501", "HM-HU604", "HM-HU702", "HM-HU291", "HM-HU591", "BS-PH101", "BS-PH201", "BS-M101", "BS-CH201", "BS-CH101","BS-M201","BS-M303","BS-M301","BS-BIO301","BS-M404","PC-CS402","PC-CS403","PC-CS404","PC-CS(D)401","PC-CS492","PC-CS(D)491","PC-CS493","BS-M494","BS-PH191", "BS-PH291","BS-CH291","BS-CH191","ES-EE101","ES-CS201","ES-AUE301","ES-AUE302","ES-AUE401","ES-EE191","ES-ME191","ES-CS291","ES-ME292","PC-AUE301","PC-AUE302","PC-AUE401","PC-AUE402","PC-AUE403","PC-AUE404","PC-AUE501","PC-AUE502","PC-AUE503","PC-AUE504","PC-AUE601","PC-AUE602","PC-AUE701","PC-AUE391","PC-AUE491","PC-AUE591","PC-AUE592","PC-AUE691","PC-AUE692","PC-AUE693","PC-AUE791","PC-AUE881","PE-AUE601","PE-AUE601A","PE-AUE601B","PE-AUE601C","PE-AUE701","PE-AUE701A","PE-AUE701B","PE-AUE701C","PE-AUE702","PE-AUE702A","PE-AUE702B","PE-AUE702C","PE-AUE801","PE-AUE801A","PE-AUE801B","PE-AUE801C","PE-AUE801D","PE-AUE802","PE-AUE802A","PE-AUE802B","PE-AUE802C","OE-AUE701","OE-AUE701A","OE-AUE701B","OE-AUE701C","OE-AUE701D","OE-AUE801","OE-AUE801A","OE-AUE801B","OE-AUE801C","OE-AUE802","OE-AUE802A","OE-AUE802B","OE-AUE802C","OE-AUE802D","PW-AUE581","PW-AUE681","PW-AUE781","PW-AUE882","MC471","MC571","MC671","MC673","MC772"), subject, { subject = it }, Icons.Default.MenuBook)
+                        AutoCompleteField("Subject *", listOf("HM-HU101", "HM-HU501", "HM-HU604", "HM-HU702", "HM-HU291", "HM-HU591", "BS-PH101", "BS-VAC03", "BS-VAC01", "BS-PH201", "BS-M101", "BS-CH201", "BS-CH101","BS-M201","BS-M303","BS-M301","BS-BIO301","BS-M404","PC-CS402","PC-CS403","PC-CS404","PC-CS(D)401","PC-CS492","PC-CS(D)491","PC-CS493","BS-M494","BS-PH191", "BS-PH291","BS-CH291","BS-CH191","ES-EE101","ES-CS201","ES-AUE301","ES-AUE302","ES-AUE401","ES-EE191","ES-ME191","ES-CS291","ES-ME292","PC-AUE301","PC-AUE302","PC-AUE401","PC-AUE402","PC-AUE403","PC-AUE404","PC-AUE501","PC-AUE502","PC-AUE503","PC-AUE504","PC-AUE601","PC-AUE602","PC-AUE701","PC-AUE391","PC-AUE491","PC-AUE591","PC-AUE592","PC-AUE691","PC-AUE692","PC-AUE693","PC-AUE791","PC-AUE881","PE-AUE601","PE-AUE601A","PE-AUE601B","PE-AUE601C","PE-AUE701","PE-AUE701A","PE-AUE701B","PE-AUE701C","PE-AUE702","PE-AUE702A","PE-AUE702B","PE-AUE702C","PE-AUE801","PE-AUE801A","PE-AUE801B","PE-AUE801C","PE-AUE801D","PE-AUE802","PE-AUE802A","PE-AUE802B","PE-AUE802C","OE-AUE701","OE-AUE701A","OE-AUE701B","OE-AUE701C","OE-AUE701D","OE-AUE801","OE-AUE801A","OE-AUE801B","OE-AUE801C","OE-AUE802","OE-AUE802A","OE-AUE802B","OE-AUE802C","OE-AUE802D", "PW-BS281","PW-AUE581","PW-AUE681","PW-AUE781","PW-AUE882","MC471","MC571","MC671","MC673","MC772"), subject, { subject = it }, Icons.Default.MenuBook)
                         Spacer(Modifier.height(24.dp))
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -811,7 +811,7 @@ fun AttendanceTable(data: List<StudentReport>) {
 
 @Composable
 fun ExportMenu(teacherId: String, department: String, year: String, sem: String, subject: String) {
-    val analysisUrl = BASE_ANALYSIS_URL
+    val analysisUrl = RemoteConfigManager.getAnalysisUrl()
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
 

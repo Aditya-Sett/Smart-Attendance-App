@@ -3,6 +3,9 @@ import java.io.FileInputStream
 
 
 plugins {
+    //id("com.android.application")
+    // Add the Google services Gradle plugin
+    id("com.google.gms.google-services")
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -77,6 +80,14 @@ android {
 
 dependencies {
 
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
+    // TODO: Add the dependencies for Firebase products you want to use
+    //implementation("com.google.firebase:firebase-config-ktx")
+    // When using the BoM, don't specify versions in Firebase dependencies
+    implementation("com.google.firebase:firebase-analytics")
+    // Add the dependencies for any other desired Firebase products
+    // https://firebase.google.com/docs/android/setup#available-libraries
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -99,6 +110,12 @@ dependencies {
     implementation("com.patrykandpatrick.vico:core:1.13.1")
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
     implementation(libs.androidx.room.runtime.android)
+    //implementation(libs.firebase.config.ktx)
+
+    implementation("com.google.firebase:firebase-config-ktx:21.6.3")
+    implementation("com.google.firebase:firebase-common-ktx:21.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
     //implementation(libs.protolite.well.known.types)
     //implementation(libs.androidx.compose.material)
     //implementation(libs.androidx.camera.camera2.pipe)

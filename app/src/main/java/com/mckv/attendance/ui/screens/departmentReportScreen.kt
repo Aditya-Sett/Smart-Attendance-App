@@ -3472,7 +3472,7 @@ data class Subject(
 
 class ReportViewModel : ViewModel() {
 
-    var selectedDepartment by mutableStateOf("CSEDS")
+    var selectedDepartment by mutableStateOf("CSE-DS")
     var selectedYear by mutableStateOf("2025-26")
     var data by mutableStateOf<DepartmentResponse?>(null)
     var isLoading by mutableStateOf(false)
@@ -3707,7 +3707,7 @@ fun KpiCard(
 fun DepartmentRow(viewModel: ReportViewModel) {
 
     val departments =
-        listOf("CSEDS", "CSE", "IT", "ECE")
+        listOf("CSE-DS", "CSE-AIML", "CSE", "ECE", "EE", "ME", "AUE","IT")
 
     LazyRow(
         horizontalArrangement =

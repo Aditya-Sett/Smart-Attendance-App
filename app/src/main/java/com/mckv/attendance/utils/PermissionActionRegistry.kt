@@ -89,13 +89,13 @@ object PermissionActionRegistry {
             "report_generate_attendance"
         ),
 
-        "MANAGE_MEDICAL_LEAVE" to UiPermissionAction(
+        /*"MANAGE_MEDICAL_LEAVE" to UiPermissionAction(
             "MANAGE_MEDICAL_LEAVE",
             "Departmental",
             "Medical Leave",
             Icons.Default.Schedule,
             "consider_absence"
-        ),
+        ),*/
 
         //Role Management Permissions
         "MANAGE_ROLE" to UiPermissionAction(
@@ -120,14 +120,14 @@ object PermissionActionRegistry {
             "Apply Medical Leave",
             Icons.Default.AdminPanelSettings,
             "manage_roles"
-        ),
+        )
 
-        "VIEW_TIMETABLE" to UiPermissionAction(
+        /*"VIEW_TIMETABLE" to UiPermissionAction(
             "VIEW_TIMETABLE",
             "Departmental",
             "View Timetable",
             Icons.Default.AdminPanelSettings,
             "manage_roles"
-        )
+        )*/
     )
 }

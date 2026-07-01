@@ -1321,7 +1321,7 @@ fun LoginScreen(navController: NavController) {
                         usernameError = ""
                     },
                     placeholder = {
-                        Text("Username", color = Color.White.copy(0.8f))
+                        Text("Email", color = Color.White.copy(0.8f))
                     },
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
@@ -1418,7 +1418,7 @@ fun LoginScreen(navController: NavController) {
                     var hasError = false
 
                     if (username.isBlank()) {
-                        usernameError = "Plz enter your username"
+                        usernameError = "Plz enter your Email"
                         hasError = true
                     }
 

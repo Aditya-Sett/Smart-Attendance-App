@@ -1,3 +1,5 @@
+/*
+
 package com.mckv.attendance.data.remote
 
 import com.mckv.attendance.BuildConfig
@@ -75,6 +77,67 @@ object RetrofitClient {
     }
 
     // Helper function to avoid code duplication
+    private fun createRetrofit(baseUrl: String): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+}
+
+ */
+
+
+
+
+package com.mckv.attendance.data.remote
+
+import com.mckv.attendance.ReportConfigManager.RemoteConfigManager
+import com.mckv.attendance.data.remote.api.AnalysisService
+import com.mckv.attendance.data.remote.api.AttendanceService
+import com.mckv.attendance.data.remote.api.AuthApiService
+import com.mckv.attendance.data.remote.api.RolePermissionApiService
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
+
+object RetrofitClient {
+
+    private val loggingInterceptor = HttpLoggingInterceptor { message ->
+        println("📡 RetrofitLog: $message")
+    }.apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+
+    private val client = OkHttpClient.Builder()
+        .addInterceptor(loggingInterceptor)   // ✅ removed duplicate interceptor
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    // ✅ URLs now come from Firebase Remote Config (fetched before splash ends)
+    private val baseUrl get() = RemoteConfigManager.getBaseUrl()
+    private val baseAuthUrl get() = RemoteConfigManager.getAuthUrl()
+    private val baseRoleUrl get() = RemoteConfigManager.getRoleUrl()
+    private val baseAnalysisUrl get() = RemoteConfigManager.getAnalysisUrl()
+
+    // ✅ No more `by lazy` — instances are created fresh using live URLs
+    val instance: AttendanceService
+        get() = createRetrofit(baseUrl).create(AttendanceService::class.java)
+
+    val authInstance: AuthApiService
+        get() = createRetrofit(baseAuthUrl).create(AuthApiService::class.java)
+
+    val rolePermissionInstance: RolePermissionApiService
+        get() = createRetrofit(baseRoleUrl).create(RolePermissionApiService::class.java)
+
+    val analysisInstance: AnalysisService
+        get() = createRetrofit(baseAnalysisUrl).create(AnalysisService::class.java)
+
     private fun createRetrofit(baseUrl: String): Retrofit {
         return Retrofit.Builder()
             .baseUrl(baseUrl)
