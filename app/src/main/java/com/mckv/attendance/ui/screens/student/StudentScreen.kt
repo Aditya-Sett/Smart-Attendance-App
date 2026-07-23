@@ -101,7 +101,7 @@ fun StudentScreen(
                 checking = uiState.bluetoothChecking,
                 supported = uiState.bluetoothSupported,
                 enabled = uiState.bluetoothEnabled,
-                onEnableBluetooth = { studentViewModel.requestBluetoothEnable(activity) },
+                onEnableBluetooth = @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT) { studentViewModel.requestBluetoothEnable(activity) },
                 onRefresh = { studentViewModel.checkBluetoothStatus(context, activity) }
             )
 
