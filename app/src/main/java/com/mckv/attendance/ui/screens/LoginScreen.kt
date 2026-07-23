@@ -1199,6 +1199,7 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.mckv.attendance.data.remote.dto.request.LoginRequest
+import com.mckv.attendance.utils.DeviceUtils
 import com.mckv.attendance.utils.loginUser
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
@@ -1432,7 +1433,9 @@ fun LoginScreen(navController: NavController) {
                     keyboardController?.hide()
                     focusManager.clearFocus()
 
-                    val request = LoginRequest(username, password)
+                    val deviceId = DeviceUtils.getDeviceId(context)
+
+                    val request = LoginRequest(username, password, deviceHardwareId = deviceId)
                     loading = true
 
                     loginUser(request, context, navController) {
