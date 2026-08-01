@@ -1,5 +1,6 @@
 package com.mckv.attendance.utils
 
+import android.graphics.drawable.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import com.mckv.attendance.ui.components.UiPermissionAction
@@ -68,7 +69,7 @@ object PermissionActionRegistry {
         "TAKE_ATTENDANCE" to UiPermissionAction(
             "TAKE_ATTENDANCE",
             "Attendance",
-            "take attendance",
+            "Take Attendance",
             Icons.Default.Delete,
             "take_attendance"
         ),
@@ -120,6 +121,14 @@ object PermissionActionRegistry {
             "Apply Medical Leave",
             Icons.Default.AdminPanelSettings,
             "manage_roles"
+        ),
+
+        "MANAGE_DEVICE" to UiPermissionAction(
+            "MANAGE_DEVICE",
+            "Request",
+            "Manage Device",
+            Icons.Default.PhoneAndroid,
+            "manage_device"
         )
 
         /*"VIEW_TIMETABLE" to UiPermissionAction(

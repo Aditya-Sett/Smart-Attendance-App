@@ -122,6 +122,101 @@ fun startBleAdvertising(
 }
 
 
+//@SuppressLint("MissingPermission", "ServiceCast")
+//fun scanForTeacherUuid(
+//    context: Context,
+//    backendUuid: String,
+//    onResult: (Boolean) -> Unit
+//) {
+//    val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+//    val bluetoothAdapter = bluetoothManager.adapter
+//
+//    if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
+//        onResult(false)
+//        return
+//    }
+//
+//    val scanner = bluetoothAdapter.bluetoothLeScanner
+//    if (scanner == null) {
+//        onResult(false)
+//        return
+//    }
+//
+////    var matchFound = false
+//
+////    val callback = object : ScanCallback() {
+////        override fun onScanResult(callbackType: Int, result: ScanResult) {
+////
+////            val scanRecord = result.scanRecord ?: return
+////            val serviceUuids = scanRecord.serviceUuids ?: return
+////
+////            // 🔍 Linear search for UUID match
+////            for (parcelUuid in serviceUuids) {
+////                if (parcelUuid.uuid.toString().equals(backendUuid, ignoreCase = true)) {
+////                    matchFound = true
+////                    break
+////                }
+////            }
+////
+////            if (matchFound) {
+////                scanner.stopScan(this)
+////                onResult(true)
+////            }
+////        }
+////
+////        override fun onScanFailed(errorCode: Int) {
+////            onResult(false)
+////        }
+////    }
+////
+////    // Start scanning
+////    scanner.startScan(callback)
+////
+////    // Stop scanning after 5 seconds
+////    Handler(Looper.getMainLooper()).postDelayed({
+////        scanner.stopScan(callback)
+////        if (!matchFound) onResult(false)
+////    }, 5000)
+//
+////    ------------------------------RENEW---------------------------------------------------
+//
+//    // 1. Build the Low Latency Settings
+//    val settings = ScanSettings.Builder()
+//        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+//        .build()
+//
+//    // 2. Build the Filter (so Android does the searching for you)
+//    val filter = ScanFilter.Builder()
+//        .setServiceUuid(ParcelUuid.fromString(backendUuid))
+//        .build()
+//
+//    var matchFound = false
+//
+//    val callback = object : ScanCallback() {
+//        override fun onScanResult(callbackType: Int, result: ScanResult) {
+//            // Because we used a filter, if this triggers, it's a guaranteed match!
+//            matchFound = true
+//            scanner.stopScan(this)
+//            onResult(true)
+//        }
+//
+//        override fun onScanFailed(errorCode: Int) {
+//            onResult(false)
+//        }
+//    }
+//
+//    // 3. Start scanning with Filters and Settings
+//    scanner.startScan(listOf(filter), settings, callback)
+//
+//    // Stop scanning after 5 seconds
+//    Handler(Looper.getMainLooper()).postDelayed({
+//        scanner.stopScan(callback)
+//        if (!matchFound) onResult(false)
+//    }, 5000)
+//
+////    -----------------------------RENEW END---------------------------------------------
+//}
+
 @SuppressLint("MissingPermission", "ServiceCast")
 fun scanForTeacherUuid(
     context: Context,
@@ -142,40 +237,52 @@ fun scanForTeacherUuid(
         return
     }
 
-    var matchFound = false
+    // 1. Build the Low Latency Settings
+    val settings = ScanSettings.Builder()
+        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+        .build()
+
+    // 2. Build the Filter
+    val filter = try {
+        ScanFilter.Builder()
+            .setServiceUuid(ParcelUuid.fromString(backendUuid))
+            .build()
+    } catch (e: IllegalArgumentException) {
+        // Safety check: Prevents crash if backend sends a badly formatted UUID string
+        onResult(false)
+        return
+    }
+
+    // 🛡️ Safety Flag: Ensures we only return ONE result per scan
+    var isFinished = false
 
     val callback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
+            if (isFinished) return // Prevent double-firing
+            isFinished = true
 
-            val scanRecord = result.scanRecord ?: return
-            val serviceUuids = scanRecord.serviceUuids ?: return
-
-            // 🔍 Linear search for UUID match
-            for (parcelUuid in serviceUuids) {
-                if (parcelUuid.uuid.toString().equals(backendUuid, ignoreCase = true)) {
-                    matchFound = true
-                    break
-                }
-            }
-
-            if (matchFound) {
-                scanner.stopScan(this)
-                onResult(true)
-            }
+            scanner.stopScan(this)
+            onResult(true)
         }
 
         override fun onScanFailed(errorCode: Int) {
+            if (isFinished) return // Prevent double-firing
+            isFinished = true
+
             onResult(false)
         }
     }
 
-    // Start scanning
-    scanner.startScan(callback)
+    // 3. Start scanning with Filters and Settings
+    scanner.startScan(listOf(filter), settings, callback)
 
-    // Stop scanning after 5 seconds
+    // 4. Stop scanning after 5 seconds
     Handler(Looper.getMainLooper()).postDelayed({
-        scanner.stopScan(callback)
-        if (!matchFound) onResult(false)
+        if (!isFinished) {
+            isFinished = true // Mark as finished so late callbacks are ignored
+            scanner.stopScan(callback)
+            onResult(false)
+        }
     }, 5000)
 }
 

@@ -21,6 +21,10 @@ import com.google.android.gms.location.LocationServices
 import com.mckv.attendance.navigation.AppNavigation
 import com.mckv.attendance.receiver.GeofenceBroadcastReceiver
 import com.mckv.attendance.ui.theme.SmartAttendanceAppTheme
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.SideEffect
+import androidx.core.view.WindowCompat
+import androidx.compose.ui.platform.LocalView
 
 
 class MainActivity : ComponentActivity() {
@@ -65,6 +69,16 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             SmartAttendanceAppTheme {
+                val view = LocalView.current
+                if (!view.isInEditMode) {
+                    SideEffect {
+                        val window = this@MainActivity.window
+                        // Since app screens use light backgrounds regardless of theme,
+                        // force DARK icons (readable on light background) always:
+                        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+                    }
+                }
+
                 val navController = rememberNavController()
 
                 //CALL THE CENTRAL NAVIGATION

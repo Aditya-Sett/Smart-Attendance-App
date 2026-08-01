@@ -18,12 +18,13 @@ import com.mckv.attendance.data.remote.dto.response.LoginResponse
 import com.mckv.attendance.data.remote.dto.response.ProfileResponse
 import com.mckv.attendance.data.remote.dto.response.RolePermissionsResponse
 
-private val gson = Gson()
+val gson = Gson()
 
 fun loginUser(
     request: LoginRequest,
     context: Context,
     navController: NavController,
+    onUnrecognizedDevice: () -> Unit = {},
     onComplete: () -> Unit = {}
 ) {
     RetrofitClient.authInstance.loginUser(request)
@@ -39,7 +40,11 @@ fun loginUser(
                                 // ✅ Pass token forward; don't save session yet
                                 fetchUserProfile(token, context, navController, onComplete)
                                 return // onComplete() will be called deep in the chain
-                            } else {
+                            }
+                            else if (loginResponse.message == "DEVICE_NOT_RECOGNIZED") {
+                                onUnrecognizedDevice()
+                            }
+                            else {
                                 Toast.makeText(context, "❌ ${loginResponse.message}", Toast.LENGTH_LONG).show()
                             }
                         } catch (e: Exception) {
@@ -50,7 +55,12 @@ fun loginUser(
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    Toast.makeText(context, "⚠️ Server Error: $errorBody", Toast.LENGTH_LONG).show()
+                    // Handle non-200 responses that might contain DEVICE_NOT_RECOGNIZED error body JSON
+                    if (errorBody?.contains("DEVICE_NOT_RECOGNIZED") == true) {
+                        onUnrecognizedDevice()
+                    } else {
+                        Toast.makeText(context, "⚠️ Server Error: $errorBody", Toast.LENGTH_LONG).show()
+                    }
                 }
                 onComplete() // ✅ Always called on any failure path here
             }

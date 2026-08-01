@@ -12,6 +12,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 
 import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.ui.components.common.CommonTopBar
@@ -125,6 +127,33 @@ fun ProfileScreen(navController: NavHostController) {
                             user.studentProfile.semester?.toString() ?: "N/A"
                         )
                     }
+                }
+            }
+
+            // 🔹 Account Settings / Security Section
+            item {
+                SectionTitle("Security")
+            }
+
+            item {
+                Button(
+                    onClick = { navController.navigate("change_password") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Change Password Icon",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Change Password")
                 }
             }
 

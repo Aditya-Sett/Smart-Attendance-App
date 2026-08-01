@@ -11,6 +11,6 @@ object DeveloperOptionsChecker {
             0
         ) != 0
 
-        //return false
+//        return false
     }
 }

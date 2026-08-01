@@ -17,6 +17,7 @@ import com.mckv.attendance.ui.screens.AttendanceDetailsScreen
 import com.mckv.attendance.ui.screens.AttendanceRecordsScreen
 import com.mckv.attendance.ui.screens.AttendanceSessionsScreen
 import com.mckv.attendance.ui.screens.AttendanceSummaryScreen
+import com.mckv.attendance.ui.screens.ChangePasswordScreen
 import com.mckv.attendance.ui.screens.ClassroomListScreen
 import com.mckv.attendance.ui.screens.ConsiderAbsenceScreen
 import com.mckv.attendance.ui.screens.CurriculumDetailsScreen
@@ -24,10 +25,12 @@ import com.mckv.attendance.ui.screens.CurriculumSummaryScreen
 import com.mckv.attendance.ui.screens.DynamicDashboardScreen
 import com.mckv.attendance.ui.screens.EditCurriculumScreen
 import com.mckv.attendance.ui.screens.ExportAttendanceScreen
+import com.mckv.attendance.ui.screens.ForgotPasswordScreen
 import com.mckv.attendance.ui.screens.HodControlsScreen
 import com.mckv.attendance.ui.screens.HomeScreen
 import com.mckv.attendance.ui.screens.LoginScreen
 import com.mckv.attendance.ui.screens.MainHomeScreen
+import com.mckv.attendance.ui.screens.ManageDeviceScreen
 import com.mckv.attendance.ui.screens.ManageRoleScreen
 import com.mckv.attendance.ui.screens.MyScheduleScreen
 import com.mckv.attendance.ui.screens.ProfileScreen
@@ -83,6 +86,9 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable("signup") {
             SignupScreen(navController)
+        }
+        composable("forgot_password") {
+            ForgotPasswordScreen(navController = navController)
         }
         composable("schedule") {
             //ScheduleScreen(department = "CSE")
@@ -173,6 +179,9 @@ fun AppNavigation(navController: NavHostController) {
         composable("attendance_records") {
             AttendanceRecordsScreen(navController)
         }
+        composable("manage_device") {
+            ManageDeviceScreen(navController)
+        }
         /*composable("export_attendance") {
             ExportAttendanceScreen(navController)
         }*/
@@ -206,7 +215,9 @@ fun AppNavigation(navController: NavHostController) {
             ManageRoleScreen(navController)
         }
 
-
+        composable("change_password") {
+            ChangePasswordScreen(navController = navController)
+        }
         composable("profile") {
             ProfileScreen(navController)
         }
