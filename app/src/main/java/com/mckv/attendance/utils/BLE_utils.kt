@@ -21,6 +21,16 @@ import androidx.compose.runtime.Composable
 import androidx.core.app.ActivityCompat
 import java.util.UUID
 
+
+
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
+
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+
 @Composable
 fun CheckBleSupport(context: Context) {
     val pm = context.packageManager
@@ -218,73 +228,123 @@ fun startBleAdvertising(
 //}
 
 @SuppressLint("MissingPermission", "ServiceCast")
-fun scanForTeacherUuid(
-    context: Context,
-    backendUuid: String,
-    onResult: (Boolean) -> Unit
-) {
+suspend fun scanForTeacherUuid(context: Context, backendUuid: String): Boolean = suspendCancellableCoroutine { cont ->
     val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-    val bluetoothAdapter = bluetoothManager.adapter
+    val scanner = bluetoothManager.adapter?.bluetoothLeScanner
 
-    if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
-        onResult(false)
-        return
+    if (scanner == null || bluetoothManager.adapter?.isEnabled == false) {
+        cont.resume(false)
+        return@suspendCancellableCoroutine
     }
 
-    val scanner = bluetoothAdapter.bluetoothLeScanner
-    if (scanner == null) {
-        onResult(false)
-        return
-    }
-
-    // 1. Build the Low Latency Settings
     val settings = ScanSettings.Builder()
         .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
         .build()
 
-    // 2. Build the Filter
     val filter = try {
         ScanFilter.Builder()
             .setServiceUuid(ParcelUuid.fromString(backendUuid))
             .build()
     } catch (e: IllegalArgumentException) {
-        // Safety check: Prevents crash if backend sends a badly formatted UUID string
-        onResult(false)
-        return
+        cont.resume(false)
+        return@suspendCancellableCoroutine
     }
-
-    // 🛡️ Safety Flag: Ensures we only return ONE result per scan
-    var isFinished = false
 
     val callback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            if (isFinished) return // Prevent double-firing
-            isFinished = true
-
-            scanner.stopScan(this)
-            onResult(true)
+            if (cont.isActive) {
+                // Instantly stop scanning the moment we find the teacher
+                scanner.stopScan(this)
+                cont.resume(true)
+            }
         }
 
         override fun onScanFailed(errorCode: Int) {
-            if (isFinished) return // Prevent double-firing
-            isFinished = true
-
-            onResult(false)
+            if (cont.isActive) {
+                cont.resume(false)
+            }
         }
     }
 
-    // 3. Start scanning with Filters and Settings
-    scanner.startScan(listOf(filter), settings, callback)
+    // If the ViewModel cancels the job (e.g., student leaves the screen), stop the scanner automatically
+    cont.invokeOnCancellation {
+        scanner.stopScan(callback)
+    }
 
-    // 4. Stop scanning after 5 seconds
-    Handler(Looper.getMainLooper()).postDelayed({
-        if (!isFinished) {
-            isFinished = true // Mark as finished so late callbacks are ignored
-            scanner.stopScan(callback)
-            onResult(false)
-        }
-    }, 5000)
+    // Start the continuous scan
+    scanner.startScan(listOf(filter), settings, callback)
 }
+
+//@SuppressLint("MissingPermission", "ServiceCast")
+//fun scanForTeacherUuid(
+//    context: Context,
+//    backendUuid: String,
+//    onResult: (Boolean) -> Unit
+//) {
+//    val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+//    val bluetoothAdapter = bluetoothManager.adapter
+//
+//    if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
+//        onResult(false)
+//        return
+//    }
+//
+//    val scanner = bluetoothAdapter.bluetoothLeScanner
+//    if (scanner == null) {
+//        onResult(false)
+//        return
+//    }
+//
+//    // 1. Build the Low Latency Settings
+//    val settings = ScanSettings.Builder()
+//        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+//        .build()
+//
+//    // 2. Build the Filter
+//    val filter = try {
+//        ScanFilter.Builder()
+//            .setServiceUuid(ParcelUuid.fromString(backendUuid))
+//            .build()
+//    } catch (e: IllegalArgumentException) {
+//        // Safety check: Prevents crash if backend sends a badly formatted UUID string
+//        onResult(false)
+//        return
+//    }
+//
+//    // 🛡️ Safety Flag: Ensures we only return ONE result per scan
+//    var isFinished = false
+//
+//    val callback = object : ScanCallback() {
+//        override fun onScanResult(callbackType: Int, result: ScanResult) {
+//            if (isFinished) return // Prevent double-firing
+//            isFinished = true
+//
+//            scanner.stopScan(this)
+//            onResult(true)
+//        }
+//
+//        override fun onScanFailed(errorCode: Int) {
+//            if (isFinished) return // Prevent double-firing
+//            isFinished = true
+//
+//            onResult(false)
+//        }
+//    }
+//
+//    // 3. Start scanning with Filters and Settings
+//    scanner.startScan(listOf(filter), settings, callback)
+//
+//    // 4. Stop scanning after 5 seconds
+//    Handler(Looper.getMainLooper()).postDelayed({
+//        if (!isFinished) {
+//            isFinished = true // Mark as finished so late callbacks are ignored
+//            scanner.stopScan(callback)
+//            onResult(false)
+//        }
+//    }, 5000)
+//}
+
+
 
 fun ensureBluetoothPermissions(activity: Activity): Boolean {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

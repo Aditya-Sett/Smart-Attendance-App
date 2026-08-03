@@ -181,6 +181,8 @@ class GiveAttendanceViewModel : ViewModel() {
 
     // ─── BLE Scanning ──────────────────────────────────────────────────────────
 
+    // ─── BLE Scanning ──────────────────────────────────────────────────────────
+
     private fun startBleScanning(context: Context, bluetoothUuid: String?) {
         if (bluetoothUuid.isNullOrBlank()) return
 
@@ -189,30 +191,49 @@ class GiveAttendanceViewModel : ViewModel() {
 
         bleJob?.cancel()
         bleJob = viewModelScope.launch {
-            while (isActive && _uiState.value.isCodeAvailable) {
-                scanForTeacherUuid(context, bluetoothUuid) { matched ->
-                    Log.d("BLE", if (matched) "✅ Teacher nearby" else "❌ Teacher not nearby")
+            // This line will pause the coroutine continuously until the scanner finds the UUID
+            val isTeacherFound = scanForTeacherUuid(context, bluetoothUuid)
 
-                    if (matched && !_bleLatched) {
-                        // First time we see the teacher — latch permanently for this session
-                        _bleLatched = true
-                        Log.d("BLE", "🔒 BLE latched — will stay green for this session")
-                    }
-
-                    // Always reflect the latched state, never go back to false
-                    _uiState.update { it.copy(isTeacherNearby = _bleLatched) }
-                }
-
-                // Once latched, no point continuing to scan — cancel this job
-                if (_bleLatched) {
-                    Log.d("BLE", "🛑 BLE scan stopped — already latched")
-                    break
-                }
-
-                delay(3_000L)
+            if (isTeacherFound && !_bleLatched) {
+                Log.d("BLE", "✅ Teacher nearby. 🔒 BLE latched for this session")
+                _bleLatched = true
+                _uiState.update { it.copy(isTeacherNearby = true) }
             }
         }
     }
+
+//    private fun startBleScanning(context: Context, bluetoothUuid: String?) {
+//        if (bluetoothUuid.isNullOrBlank()) return
+//
+//        // If already latched, BLE bulb is already green — no need to restart scanning
+//        if (_bleLatched) return
+//
+//        bleJob?.cancel()
+//        bleJob = viewModelScope.launch {
+//            while (isActive && _uiState.value.isCodeAvailable) {
+//                scanForTeacherUuid(context, bluetoothUuid) { matched ->
+//                    Log.d("BLE", if (matched) "✅ Teacher nearby" else "❌ Teacher not nearby")
+//
+//                    if (matched && !_bleLatched) {
+//                        // First time we see the teacher — latch permanently for this session
+//                        _bleLatched = true
+//                        Log.d("BLE", "🔒 BLE latched — will stay green for this session")
+//                    }
+//
+//                    // Always reflect the latched state, never go back to false
+//                    _uiState.update { it.copy(isTeacherNearby = _bleLatched) }
+//                }
+//
+//                // Once latched, no point continuing to scan — cancel this job
+//                if (_bleLatched) {
+//                    Log.d("BLE", "🛑 BLE scan stopped — already latched")
+//                    break
+//                }
+//
+//                delay(3_000L)
+//            }
+//        }
+//    }
 
     // ─── Timer ─────────────────────────────────────────────────────────────────
 

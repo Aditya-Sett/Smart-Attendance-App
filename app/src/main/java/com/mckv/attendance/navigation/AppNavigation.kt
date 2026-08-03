@@ -27,7 +27,7 @@ import com.mckv.attendance.ui.screens.EditCurriculumScreen
 import com.mckv.attendance.ui.screens.ExportAttendanceScreen
 import com.mckv.attendance.ui.screens.ForgotPasswordScreen
 import com.mckv.attendance.ui.screens.HodControlsScreen
-import com.mckv.attendance.ui.screens.HomeScreen
+//import com.mckv.attendance.ui.screens.HomeScreen
 import com.mckv.attendance.ui.screens.LoginScreen
 import com.mckv.attendance.ui.screens.MainHomeScreen
 import com.mckv.attendance.ui.screens.ManageDeviceScreen
