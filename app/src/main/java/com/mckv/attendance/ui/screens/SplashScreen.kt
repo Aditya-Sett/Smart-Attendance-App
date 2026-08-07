@@ -354,6 +354,8 @@ import com.mckv.attendance.ReportConfigManager.RemoteConfigManager
 import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.utils.DeveloperOptionsChecker
 import kotlinx.coroutines.delay
+import com.mckv.attendance.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun SplashScreen(navController: NavController) {
@@ -463,7 +465,7 @@ fun SplashScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "EDU-One+",
+                text = stringResource(R.string.app_name), // To change the app name go to app>src>main>res>values>strings.xml & change the "app_name"
                 color = Color(0xFF0D47A1),
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,

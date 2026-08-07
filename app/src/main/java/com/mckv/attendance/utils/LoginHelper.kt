@@ -59,7 +59,8 @@ fun loginUser(
                     if (errorBody?.contains("DEVICE_NOT_RECOGNIZED") == true) {
                         onUnrecognizedDevice()
                     } else {
-                        Toast.makeText(context, "⚠️ Server Error: $errorBody", Toast.LENGTH_LONG).show()
+                        val errorResponse = gson.fromJson(errorBody, LoginResponse::class.java)
+                        Toast.makeText(context, "❌ ${errorResponse.message} ❌", Toast.LENGTH_LONG).show()
                     }
                 }
                 onComplete() // ✅ Always called on any failure path here

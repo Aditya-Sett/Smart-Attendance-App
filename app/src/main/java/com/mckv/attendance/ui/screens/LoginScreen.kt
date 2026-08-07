@@ -119,12 +119,12 @@ fun LoginScreen(navController: NavController) {
                         if (res.data == "REBIND") {
                             // Success True but data is REBIND
                             isStatusSuccess = false
-                            deviceStatusMessage = "Do you want to open your account here?"
+                            deviceStatusMessage = "This account binds with other handset\n\nDo you want to change your handset to open your account here?"
                         }
                         else {
                             isStatusSuccess = true
                             // Show existing request status (e.g., "APPROVED", "PENDING", etc.)
-                            deviceStatusMessage = "Device Request Status: ${res.data ?: res.message} Contact to your Class Coordinator"
+                            deviceStatusMessage = "Device Request Status: ${res.data ?: res.message}\n\nContact to your Class Coordinator"
                         }
                     } else {
                         // No active request found -> Prompt to initiate a change request
@@ -497,7 +497,11 @@ fun LoginScreen(navController: NavController) {
                         } else {
                             // Status check returned false -> Action to submit change request
                             TextButton(
-                                onClick = { sendDeviceChangeRequest() }
+                                onClick = { sendDeviceChangeRequest() },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = Color.Black,
+                                    containerColor = Color.Green
+                                )
                             ) {
                                 Text("Yes")
                             }
