@@ -2,7 +2,6 @@ package com.mckv.attendance.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 
 object PermissionManager {
 

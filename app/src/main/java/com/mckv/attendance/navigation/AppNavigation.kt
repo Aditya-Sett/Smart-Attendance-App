@@ -24,7 +24,6 @@ import com.mckv.attendance.ui.screens.CurriculumDetailsScreen
 import com.mckv.attendance.ui.screens.CurriculumSummaryScreen
 import com.mckv.attendance.ui.screens.DynamicDashboardScreen
 import com.mckv.attendance.ui.screens.EditCurriculumScreen
-import com.mckv.attendance.ui.screens.ExportAttendanceScreen
 import com.mckv.attendance.ui.screens.ForgotPasswordScreen
 import com.mckv.attendance.ui.screens.HodControlsScreen
 //import com.mckv.attendance.ui.screens.HomeScreen
@@ -48,7 +47,6 @@ import com.mckv.attendance.ui.screens.take_attendance.TakeAttendanceScreen2
 import com.mckv.attendance.ui.screens.UploadCurriculumScreen
 import com.mckv.attendance.ui.screens.give_attendance.GiveAttendanceScreen
 import com.mckv.attendance.ui.screens.student.StudentScreen
-import com.mckv.attendance.ui.screens.take_attendance.TakeAttendanceScreen2
 import com.mckv.attendance.ui.screens.SignupScreen
 
 

@@ -34,8 +34,6 @@ import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.data.remote.RetrofitClient
 import com.mckv.attendance.data.remote.dto.request.ChangePasswordRequest
 import com.mckv.attendance.data.remote.dto.response.ApiResponse
-import com.mckv.attendance.data.remote.dto.response.LoginResponse
-import com.mckv.attendance.utils.gson
 import com.mckv.attendance.utils.logoutUser
 import retrofit2.Call
 import retrofit2.Callback

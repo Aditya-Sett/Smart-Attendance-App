@@ -2,7 +2,6 @@ package com.mckv.attendance.ui.components.common
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
-import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

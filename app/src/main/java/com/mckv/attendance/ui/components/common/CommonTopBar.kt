@@ -17,7 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import android.widget.Toast
 import androidx.compose.foundation.background
 import com.mckv.attendance.utils.logoutUser
 import androidx.compose.foundation.layout.*

@@ -13,8 +13,6 @@ import androidx.compose.material3.*
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.os.ParcelUuid
 import androidx.annotation.RequiresPermission
 import androidx.compose.runtime.Composable

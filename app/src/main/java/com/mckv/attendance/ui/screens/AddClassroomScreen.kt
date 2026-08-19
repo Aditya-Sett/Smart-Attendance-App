@@ -1,25 +1,21 @@
 package com.mckv.attendance.ui.screens
 
-import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.compose.foundation.clickable
 import com.mckv.attendance.utils.getCurrentLocation
 import com.mckv.attendance.data.remote.dto.dto_utils.Coordinate
 import androidx.compose.material3.TopAppBar
 import com.mckv.attendance.data.remote.RetrofitClient
 import androidx.compose.foundation.lazy.*
 import com.mckv.attendance.data.remote.dto.request.ClassroomRequest
-import androidx.compose.runtime.*
 import com.mckv.attendance.data.remote.dto.dto_utils.Polygon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

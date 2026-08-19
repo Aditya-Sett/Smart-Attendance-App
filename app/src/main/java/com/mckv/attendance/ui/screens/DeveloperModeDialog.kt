@@ -20,11 +20,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.foundation.border
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
+import androidx.compose.ui.res.stringResource
+import com.mckv.attendance.R
 
 @Composable
 fun DeveloperModeBlockDialog(onCloseApp: () -> Unit) {
@@ -76,7 +77,7 @@ fun DeveloperModeBlockDialog(onCloseApp: () -> Unit) {
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "EDU-One+ identified \"Developer Mode\" is enabled. For security reasons, it is recommended to change Developer Mode setting to \"Off\" while using this app. For more details, contact your administrator.",
+                    text = "${stringResource(R.string.app_name)} identified \"Developer Mode\" is enabled. For security reasons, it is recommended to change Developer Mode setting to \"Off\" while using this app. For more details, contact your administrator.",
                     color = Color(0xFF1A1A1A),
                     fontSize = 14.sp,
                     lineHeight = 22.sp,

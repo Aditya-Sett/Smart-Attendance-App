@@ -3,8 +3,6 @@ Works for Device related request and status checking
 */
 package com.mckv.attendance.data.remote.dto.request
 
-import com.google.gson.annotations.SerializedName
-
 // Models for GET /api/auth/device-request-pending
 data class DeviceRequestResponse(
     val success: Boolean,

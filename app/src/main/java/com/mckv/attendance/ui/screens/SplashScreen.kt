@@ -332,6 +332,7 @@ import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -344,7 +345,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -354,9 +357,8 @@ import com.mckv.attendance.ReportConfigManager.RemoteConfigManager
 import com.mckv.attendance.data.local.SessionManager
 import com.mckv.attendance.utils.DeveloperOptionsChecker
 import kotlinx.coroutines.delay
-import com.mckv.attendance.R
 import androidx.compose.ui.res.stringResource
-
+import com.mckv.attendance.R
 @Composable
 fun SplashScreen(navController: NavController) {
 
@@ -412,70 +414,132 @@ fun SplashScreen(navController: NavController) {
     }
 
     // ================= UI =================
+//    Box(
+//        modifier = Modifier
+//            .fillMaxSize()
+//            .background(
+//                Brush.verticalGradient(
+//                    colors = listOf(
+//                        Color(0xFFF5F9FF),
+//                        Color(0xFFE3F2FD)
+//                    )
+//                )
+//            )
+//    ) {
+//        Box(
+//            modifier = Modifier
+//                .size(180.dp)
+//                .align(Alignment.TopEnd)
+//                .offset(x = 60.dp, y = (-40).dp)
+//                .clip(CircleShape)
+//                .background(Color(0xFF64B5F6))
+//        )
+//        Box(
+//            modifier = Modifier
+//                .size(260.dp)
+//                .align(Alignment.BottomStart)
+//                .offset(x = (-80).dp, y = 80.dp)
+//                .clip(CircleShape)
+//                .background(Color(0xFF90CAF9))
+//        )
+//        Box(
+//            modifier = Modifier
+//                .size(10.dp)
+//                .align(Alignment.TopEnd)
+//                .offset(x = (-50).dp, y = 70.dp)
+//                .clip(CircleShape)
+//                .background(Color(0xFF1E88E5))
+//        )
+//        Box(
+//            modifier = Modifier
+//                .size(8.dp)
+//                .align(Alignment.CenterEnd)
+//                .offset(x = (-30).dp)
+//                .clip(CircleShape)
+//                .background(Color(0xFF42A5F5))
+//        )
+//
+//        Column(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .offset(y = floatAnim.dp),
+//            verticalArrangement = Arrangement.Center,
+//            horizontalAlignment = Alignment.CenterHorizontally
+//        ) {
+//            Text(
+//                text = stringResource(R.string.app_name), // To change the app name go to app>src>main>res>values>strings.xml & change the "app_name"
+//                color = Color(0xFF0D47A1),
+//                fontSize = 36.sp,
+//                fontWeight = FontWeight.Bold,
+//                fontFamily = FontFamily.SansSerif,
+//                modifier = Modifier.graphicsLayer {
+//                    scaleX = scale.value
+//                    scaleY = scale.value
+//                    this.alpha = alpha.value
+//                }
+//            )
+//            Spacer(modifier = Modifier.height(10.dp))
+//            AnimatedVisibility(
+//                visible = alpha.value > 0.6f,
+//                enter = fadeIn(tween(600))
+//            ) {
+//                Text(
+//                    text = "Powerful and intuitive Education\nManagement Software",
+//                    color = Color.DarkGray,
+//                    fontSize = 13.sp,
+//                    lineHeight = 18.sp
+//                )
+//            }
+//            Spacer(modifier = Modifier.height(30.dp))
+//            AnimatedVisibility(
+//                visible = alpha.value > 0.9f,
+//                enter = fadeIn(tween(600))
+//            ) {
+//                CircularProgressIndicator(
+//                    color = Color(0xFF1E88E5),
+//                    strokeWidth = 2.dp,
+//                    modifier = Modifier.size(20.dp)
+//                )
+//            }
+//        }
+//    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFF5F9FF),
-                        Color(0xFFE3F2FD)
+                        Color(0xFFF5F9FF), // Very light blue
+                        Color(0xFFFFFFFF)  // Pure White
                     )
                 )
-            )
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(180.dp)
-                .align(Alignment.TopEnd)
-                .offset(x = 60.dp, y = (-40).dp)
-                .clip(CircleShape)
-                .background(Color(0xFF64B5F6))
-        )
-        Box(
-            modifier = Modifier
-                .size(260.dp)
-                .align(Alignment.BottomStart)
-                .offset(x = (-80).dp, y = 80.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF90CAF9))
-        )
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .align(Alignment.TopEnd)
-                .offset(x = (-50).dp, y = 70.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF1E88E5))
-        )
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .align(Alignment.CenterEnd)
-                .offset(x = (-30).dp)
-                .clip(CircleShape)
-                .background(Color(0xFF42A5F5))
-        )
 
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .offset(y = floatAnim.dp),
+                .fillMaxWidth()
+                .offset(y = floatAnim.dp), // Applies the smooth up/down floating effect
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = stringResource(R.string.app_name), // To change the app name go to app>src>main>res>values>strings.xml & change the "app_name"
-                color = Color(0xFF0D47A1),
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.SansSerif,
-                modifier = Modifier.graphicsLayer {
-                    scaleX = scale.value
-                    scaleY = scale.value
-                    this.alpha = alpha.value
-                }
+
+            // 🖼️ Flash Roll Logo Image
+            Image(
+                painter = painterResource(id = R.drawable.flash_roll_logo),
+                contentDescription = "Flash Roll Logo",
+                modifier = Modifier
+                    .fillMaxWidth(0.85f) // Takes up 85% of screen width for a good margin
+                    .graphicsLayer {
+                        scaleX = scale.value
+                        scaleY = scale.value
+                        this.alpha = alpha.value
+                    },
+                contentScale = ContentScale.Fit
             )
+
             Spacer(modifier = Modifier.height(10.dp))
             AnimatedVisibility(
                 visible = alpha.value > 0.6f,
@@ -488,15 +552,17 @@ fun SplashScreen(navController: NavController) {
                     lineHeight = 18.sp
                 )
             }
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // ⏳ Loading Indicator
             AnimatedVisibility(
                 visible = alpha.value > 0.9f,
                 enter = fadeIn(tween(600))
             ) {
                 CircularProgressIndicator(
-                    color = Color(0xFF1E88E5),
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(20.dp)
+                    color = Color(0xFF0D47A1), // Brand Blue
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(36.dp)
                 )
             }
         }
