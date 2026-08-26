@@ -23,7 +23,7 @@ val baseAnalysisUrl:String= localProperties.getProperty("BASE_ANALYSIS_URL") ?: 
 
 android {
     namespace = "com.mckv.attendance"
-    compileSdk = 35
+    compileSdk = 36
 
     buildFeatures {
         compose = true
@@ -33,9 +33,9 @@ android {
     defaultConfig {
         applicationId = "com.mckv.attendance"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        targetSdk = 36
+        versionCode = 3
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String",
@@ -67,6 +67,7 @@ android {
                 "proguard-rules.pro"
             )
         }
+
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

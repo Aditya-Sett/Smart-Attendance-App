@@ -21,7 +21,6 @@ import com.google.android.gms.location.LocationServices
 import com.mckv.attendance.navigation.AppNavigation
 import com.mckv.attendance.receiver.GeofenceBroadcastReceiver
 import com.mckv.attendance.ui.theme.SmartAttendanceAppTheme
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.SideEffect
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.platform.LocalView

@@ -253,6 +253,7 @@ class GiveAttendanceViewModel : ViewModel() {
                         )
                     }
                     _bleLatched = false   // session ended via expiry — reset latch
+                    bleJob?.cancel()   // ✅ stop the BLE scan right when the code expires
                     break
                 }
                 _uiState.update { it.copy(timeLeftMillis = left) }
