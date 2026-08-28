@@ -27,7 +27,11 @@ data class GiveAttendanceUiState(
     val submissionResult: SubmissionResult? = null,
 
     // Snackbar
-    val snackbarMessage: String? = null
+    val snackbarMessage: String? = null,
+
+    // Handle is the User on call or not
+    val isOnCall: Boolean = false,
+    val isCallPermissionGranted: Boolean = true
 )
 
 sealed class SubmissionResult {

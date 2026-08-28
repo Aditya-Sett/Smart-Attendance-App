@@ -1,5 +1,8 @@
 package com.mckv.attendance.ui.screens.give_attendance
 
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.graphics.graphicsLayer
 
 import androidx.compose.animation.*
@@ -27,11 +30,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.mckv.attendance.ui.components.common.CommonTopBar
 import com.mckv.attendance.utils.formatTimeRemaining
 import com.mckv.attendance.utils.interactionDetection
+import android.Manifest
+import androidx.compose.material.icons.filled.Warning
+
+import android.app.Activity
+import androidx.core.app.ActivityCompat
+import com.mckv.attendance.utils.openAppSettings
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,9 +55,68 @@ fun GiveAttendanceScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            viewModel.startPollingAndBle(context)
+        } else {
+            viewModel.monitorCallState(context) // Triggers the missing permission state
+        }
+    }
+
+    // Helper to determine whether to trigger system popup or open App Settings
+    val handlePermissionClick = {
+        val activity = context as? Activity
+        val showRationale = activity?.let {
+            ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.READ_PHONE_STATE)
+        } ?: false
+
+        if (showRationale) {
+            // User denied once, can show dialog again
+            permissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+        } else {
+            // First launch OR permanently denied ("Don't ask again") -> Open App Settings
+            val permissionCheck = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_PHONE_STATE
+            )
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                openAppSettings(context)
+            } else {
+                viewModel.startPollingAndBle(context)
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
-        viewModel.startPollingAndBle(context)
+        val permissionCheck = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_PHONE_STATE
+        )
+
+        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+            viewModel.startPollingAndBle(context)
+        } else {
+            permissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // Re-verify call monitoring status whenever user returns to screen
+                viewModel.monitorCallState(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.stopAll()
+        }
     }
 
     DisposableEffect(Unit) {
@@ -71,84 +143,113 @@ fun GiveAttendanceScreen(
             CommonTopBar(title = "Give Attendance", navController = navController)
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFF8F9FA))
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-
-            // ── Title ──────────────────────────────────────────────────────────
-            Text(
-                text = "Mark Your Attendance",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1A237E)
-            )
-            Text(
-                text = "Both conditions must be met to submit",
-                fontSize = 13.sp,
-                color = Color(0xFF757575),
-                textAlign = TextAlign.Center
-            )
-
-            // ── Subject + Timer ────────────────────────────────────────────────
-            AnimatedVisibility(
-                visible = uiState.isCodeAvailable && uiState.activeSubject != null,
-                enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically()
-            ) {
-                SubjectTimerCard(
-                    subject = uiState.activeSubject ?: "",
-                    timeLeftMillis = uiState.timeLeftMillis,
-                    isExpired = uiState.isExpired
+    )
+    { padding ->
+        // ─── GATEKEEPER CHECK ────────────────────────────────────────────────────
+        when {
+            // Condition 1: User denied permission
+            !uiState.isCallPermissionGranted -> {
+                BlockedScreenOverlay(
+                    title = "Permission Required",
+                    description = "Phone state access is required to verify anti-proxy rules. Please allow permission to proceed.",
+                    buttonText = "Grant Permission",
+                    onButtonClick = handlePermissionClick
                 )
             }
 
-            // ── Expired Banner ─────────────────────────────────────────────────
-            AnimatedVisibility(
-                visible = uiState.isExpired,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                ExpiredBanner(
-                    subject = uiState.activeSubject ?: "",
-                    onDismiss = {
-                        viewModel.resetExpiry()
-                        navController.popBackStack()
+            // Condition 2: Active phone call detected
+            uiState.isOnCall -> {
+                BlockedScreenOverlay(
+                    title = "Active Call Detected",
+                    description = "Attendance marking is disabled while you are on an active phone call. End the call to continue.",
+                    showButton = false
+                )
+            }
+
+                // Condition 3: Normal screen access granted
+            else -> {
+                // ── Normal Attendance View ────────────────────────────────────────
+                println("Normal Attendance View -> uiState.isOnCall = ${uiState.isOnCall}")
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFFF8F9FA))
+                        .padding(padding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                )
+                {
+
+                    // ── Title ──────────────────────────────────────────────────────────
+                    Text(
+                        text = "Mark Your Attendance",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1A237E)
+                    )
+                    Text(
+                        text = "Both conditions must be met to submit",
+                        fontSize = 13.sp,
+                        color = Color(0xFF757575),
+                        textAlign = TextAlign.Center
+                    )
+
+                    // ── Subject + Timer ────────────────────────────────────────────────
+                    AnimatedVisibility(
+                        visible = uiState.isCodeAvailable && uiState.activeSubject != null,
+                        enter = fadeIn() + slideInVertically(),
+                        exit = fadeOut() + slideOutVertically()
+                    ) {
+                        SubjectTimerCard(
+                            subject = uiState.activeSubject ?: "",
+                            timeLeftMillis = uiState.timeLeftMillis,
+                            isExpired = uiState.isExpired
+                        )
                     }
-                )
-            }
 
-            // ── Attendance Form ────────────────────────────────────────────────
-            if (!uiState.isExpired) {
-                AttendanceFormCard(
-                    inputCode = uiState.inputCode,
-                    onCodeChange = viewModel::onInputCodeChanged,
-                    isEnabled = uiState.isCodeAvailable && uiState.isTeacherNearby,
-                    isSubmitting = uiState.isSubmitting,
-                    onSubmit = { viewModel.submitAttendance(context) },
-                    submissionResult = uiState.submissionResult,
-                    isCodeAvailable = uiState.isCodeAvailable,
-                    isTeacherNearby = uiState.isTeacherNearby,
-                    isPolling = uiState.isPollingCode
-                )
-            }
+                    // ── Expired Banner ─────────────────────────────────────────────────
+                    AnimatedVisibility(
+                        visible = uiState.isExpired,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        ExpiredBanner(
+                            subject = uiState.activeSubject ?: "",
+                            onDismiss = {
+                                viewModel.resetExpiry()
+                                navController.popBackStack()
+                            }
+                        )
+                    }
 
-            // ── Failure message ────────────────────────────────────────────────
-            AnimatedVisibility(visible = uiState.submissionResult is SubmissionResult.Failure) {
-                val msg = (uiState.submissionResult as? SubmissionResult.Failure)?.message ?: ""
-                FailureCard(message = msg, onDismiss = viewModel::clearSubmissionResult)
-            }
+                    // ── Attendance Form ────────────────────────────────────────────────
+                    if (!uiState.isExpired) {
+                        AttendanceFormCard(
+                            inputCode = uiState.inputCode,
+                            onCodeChange = viewModel::onInputCodeChanged,
+                            isEnabled = uiState.isCodeAvailable && uiState.isTeacherNearby,
+                            isSubmitting = uiState.isSubmitting,
+                            onSubmit = { viewModel.submitAttendance(context) },
+                            submissionResult = uiState.submissionResult,
+                            isCodeAvailable = uiState.isCodeAvailable,
+                            isTeacherNearby = uiState.isTeacherNearby,
+                            isPolling = uiState.isPollingCode
+                        )
+                    }
 
-            // ── Waiting hint ───────────────────────────────────────────────────
-            if (!uiState.isCodeAvailable && !uiState.isExpired) {
-                WaitingHint()
+                    // ── Failure message ────────────────────────────────────────────────
+                    AnimatedVisibility(visible = uiState.submissionResult is SubmissionResult.Failure) {
+                        val msg = (uiState.submissionResult as? SubmissionResult.Failure)?.message ?: ""
+                        FailureCard(message = msg, onDismiss = viewModel::clearSubmissionResult)
+                    }
+
+                    // ── Waiting hint ───────────────────────────────────────────────────
+                    if (!uiState.isCodeAvailable && !uiState.isExpired) {
+                        WaitingHint()
+                    }
+                }
             }
         }
     }
@@ -492,5 +593,141 @@ private fun WaitingHint() {
             color = Color(0xFFBDBDBD),
             textAlign = TextAlign.Center
         )
+    }
+}
+
+// ─── Call Restricted Overlay ────────────────────────────────────────────────
+
+@Composable
+private fun CallRestrictedOverlay(onBackClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F9FA))
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(8.dp, RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier.padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Icon Indicator Container
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFFEBEE)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("📞", fontSize = 36.sp)
+                }
+
+                // Main Warning Heading
+                Text(
+                    text = "Attendance Unavailable During Calls",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFC62828),
+                    textAlign = TextAlign.Center
+                )
+
+                Divider(color = Color(0xFFEEEEEE), thickness = 1.dp)
+
+                // Explanation Body
+                Text(
+                    text = "To ensure attendance integrity and avoid Bluetooth/Network signal interference, you cannot mark attendance while on an active voice or video call.",
+                    fontSize = 13.sp,
+                    color = Color(0xFF616161),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 18.sp
+                )
+
+                // Action Step Instruction
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFFF3E0),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "💡 Please end your call and try again.",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFE65100),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Go Back Button
+                Button(
+                    onClick = onBackClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))
+                ) {
+                    Text("Return to Safety Screen", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BlockedScreenOverlay(
+    title: String,
+    description: String,
+    buttonText: String = "",
+    showButton: Boolean = true,
+    onButtonClick: () -> Unit = {}
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.error
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = description,
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (showButton) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = onButtonClick) {
+                    Text(text = buttonText)
+                }
+            }
+        }
     }
 }

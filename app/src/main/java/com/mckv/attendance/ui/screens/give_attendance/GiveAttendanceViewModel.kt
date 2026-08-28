@@ -1,7 +1,18 @@
 package com.mckv.attendance.ui.screens.give_attendance
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.os.Build
+import android.telephony.PhoneStateListener
+import android.telephony.TelephonyCallback
+import android.telephony.TelephonyManager
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mckv.attendance.data.local.AttendanceManager
@@ -41,10 +52,178 @@ class GiveAttendanceViewModel : ViewModel() {
     private val sem get() = SessionManager.userDetails?.studentProfile?.semester ?: ""
     private val admissionYear get() = SessionManager.userDetails?.studentProfile?.admissionYear ?: ""
 
+    // ─── Telephony & Audio Listener References for Cleanup ───────────────────
+    private var telephonyManager: TelephonyManager? = null
+    private var telephonyCallback: TelephonyCallback? = null
+    private var phoneStateListener: PhoneStateListener? = null
+
+    private var audioManager: AudioManager? = null
+    private var audioFocusChangeListener: AudioManager.OnAudioFocusChangeListener? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
+
+    // ─── Call State & VoIP Monitoring ────────────────────────────────────────
+
+    /**
+     * Checks if the device is currently in ANY call (Cellular OR VoIP like WhatsApp/Meet/Telegram).
+     */
+    private fun isAnyCallActive(context: Context): Boolean {
+        val appContext = context.applicationContext
+
+        // 1. Check Cellular Call via TelephonyManager
+        val tm = appContext.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val isCellularCall = try {
+            tm?.callState != TelephonyManager.CALL_STATE_IDLE
+        } catch (e: SecurityException) {
+            false
+        }
+
+        // 2. Check VoIP Call via AudioManager Mode (WhatsApp, Telegram, Meet use IN_COMMUNICATION)
+        val am = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val audioMode = am?.mode ?: AudioManager.MODE_NORMAL
+        val isVoipCall = audioMode == AudioManager.MODE_IN_COMMUNICATION ||
+                audioMode == AudioManager.MODE_IN_CALL
+
+        return isCellularCall || isVoipCall
+    }
+
+    fun monitorCallState(context: Context) {
+        val appContext = context.applicationContext
+
+        // 1. Verify runtime permission first
+        val hasPermission = ContextCompat.checkSelfPermission(
+            appContext,
+            Manifest.permission.READ_PHONE_STATE
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasPermission) {
+            _uiState.update { it.copy(isCallPermissionGranted = false, isOnCall = false) }
+            return
+        }
+
+        _uiState.update { it.copy(isCallPermissionGranted = true) }
+
+        // 2. Immediately evaluate current status (Cellular + VoIP)
+        val currentCallState = isAnyCallActive(appContext)
+        _uiState.update { it.copy(isOnCall = currentCallState) }
+
+        // 3. Register Telephony Listener (For SIM/Cellular Calls)
+        if (telephonyManager == null) {
+            val tm = appContext.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+            if (tm != null) {
+                telephonyManager = tm
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    registerTelephonyCallbackApi31(appContext, tm)
+                } else {
+                    registerPhoneStateListenerLegacy(appContext, tm)
+                }
+            }
+        }
+
+        // 4. Register AudioFocus Listener (For VoIP Calls: WhatsApp, Telegram, Meet)
+        if (audioManager == null) {
+            val am = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            if (am != null) {
+                audioManager = am
+                registerAudioFocusListener(appContext, am)
+            }
+        }
+    }
+
+    private fun registerAudioFocusListener(context: Context, am: AudioManager) {
+        audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { _ ->
+            // Audio focus changed (e.g. WhatsApp started/ended a call)
+            val updatedCallState = isAnyCallActive(context)
+            _uiState.update { it.copy(isOnCall = updatedCallState) }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val playbackAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build()
+
+            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(playbackAttributes)
+                .setOnAudioFocusChangeListener(audioFocusChangeListener!!)
+                .build()
+
+            audioFocusRequest = request
+            am.requestAudioFocus(request)
+        } else {
+            @Suppress("DEPRECATION")
+            am.requestAudioFocus(
+                audioFocusChangeListener,
+                AudioManager.STREAM_VOICE_CALL,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
+            )
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun registerTelephonyCallbackApi31(context: Context, tm: TelephonyManager) {
+        val callback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
+            override fun onCallStateChanged(state: Int) {
+                val updatedCallState = isAnyCallActive(context)
+                _uiState.update { it.copy(isOnCall = updatedCallState) }
+            }
+        }
+        telephonyCallback = callback
+        tm.registerTelephonyCallback(ContextCompat.getMainExecutor(context), callback)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun registerPhoneStateListenerLegacy(context: Context,tm: TelephonyManager) {
+        val listener = object : PhoneStateListener() {
+            @Deprecated("Deprecated in Java")
+            override fun onCallStateChanged(state: Int, incomingNumber: String?) {
+                // Re-evaluate both Cellular and VoIP
+                val updatedCallState = isAnyCallActive(context)
+                _uiState.update { it.copy(isOnCall = updatedCallState) }
+            }
+        }
+        phoneStateListener = listener
+        tm.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
+    }
+
+    private fun unregisterCallMonitoring() {
+        // Unregister Telephony
+        telephonyManager?.let { tm ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                telephonyCallback?.let { callback ->
+                    tm.unregisterTelephonyCallback(callback)
+                }
+            } else {
+                phoneStateListener?.let { listener ->
+                    @Suppress("DEPRECATION")
+                    tm.listen(listener, PhoneStateListener.LISTEN_NONE)
+                }
+            }
+        }
+        telephonyCallback = null
+        phoneStateListener = null
+        telephonyManager = null
+
+        // Abandon Audio Focus
+        audioManager?.let { am ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                audioFocusRequest?.let { request -> am.abandonAudioFocusRequest(request) }
+            } else {
+                audioFocusChangeListener?.let { listener ->
+                    @Suppress("DEPRECATION")
+                    am.abandonAudioFocus(listener)
+                }
+            }
+        }
+        audioFocusRequest = null
+        audioFocusChangeListener = null
+        audioManager = null
+    }
+
     // ─── Public API ────────────────────────────────────────────────────────────
 
     fun startPollingAndBle(context: Context) {
         _bleLatched = false   // fresh session — reset latch
+        monitorCallState(context)
         startCodePolling(context)
     }
 
@@ -53,6 +232,7 @@ class GiveAttendanceViewModel : ViewModel() {
         timerJob?.cancel()
         bleJob?.cancel()
         _bleLatched = false   // reset latch so next visit starts clean
+        unregisterCallMonitoring()
     }
 
     fun onInputCodeChanged(code: String) {
@@ -101,6 +281,12 @@ class GiveAttendanceViewModel : ViewModel() {
         pollingJob = viewModelScope.launch {
             _uiState.update { it.copy(isPollingCode = true) }
             while (isActive) {
+                // Re-verify call status on every poll cycle as an extra safeguard
+                val activeCall = isAnyCallActive(context)
+                if (_uiState.value.isOnCall != activeCall) {
+                    _uiState.update { it.copy(isOnCall = activeCall) }
+                }
+
                 fetchLatestCode(context)
                 delay(2_000L)
             }
@@ -157,7 +343,6 @@ class GiveAttendanceViewModel : ViewModel() {
                     return
                 }
 
-                // ✅ Bulb 1 goes green
                 _uiState.update {
                     it.copy(
                         isCodeAvailable = true,
@@ -181,17 +366,12 @@ class GiveAttendanceViewModel : ViewModel() {
 
     // ─── BLE Scanning ──────────────────────────────────────────────────────────
 
-    // ─── BLE Scanning ──────────────────────────────────────────────────────────
-
     private fun startBleScanning(context: Context, bluetoothUuid: String?) {
         if (bluetoothUuid.isNullOrBlank()) return
-
-        // If already latched, BLE bulb is already green — no need to restart scanning
         if (_bleLatched) return
 
         bleJob?.cancel()
         bleJob = viewModelScope.launch {
-            // This line will pause the coroutine continuously until the scanner finds the UUID
             val isTeacherFound = scanForTeacherUuid(context, bluetoothUuid)
 
             if (isTeacherFound && !_bleLatched) {
@@ -201,39 +381,6 @@ class GiveAttendanceViewModel : ViewModel() {
             }
         }
     }
-
-//    private fun startBleScanning(context: Context, bluetoothUuid: String?) {
-//        if (bluetoothUuid.isNullOrBlank()) return
-//
-//        // If already latched, BLE bulb is already green — no need to restart scanning
-//        if (_bleLatched) return
-//
-//        bleJob?.cancel()
-//        bleJob = viewModelScope.launch {
-//            while (isActive && _uiState.value.isCodeAvailable) {
-//                scanForTeacherUuid(context, bluetoothUuid) { matched ->
-//                    Log.d("BLE", if (matched) "✅ Teacher nearby" else "❌ Teacher not nearby")
-//
-//                    if (matched && !_bleLatched) {
-//                        // First time we see the teacher — latch permanently for this session
-//                        _bleLatched = true
-//                        Log.d("BLE", "🔒 BLE latched — will stay green for this session")
-//                    }
-//
-//                    // Always reflect the latched state, never go back to false
-//                    _uiState.update { it.copy(isTeacherNearby = _bleLatched) }
-//                }
-//
-//                // Once latched, no point continuing to scan — cancel this job
-//                if (_bleLatched) {
-//                    Log.d("BLE", "🛑 BLE scan stopped — already latched")
-//                    break
-//                }
-//
-//                delay(3_000L)
-//            }
-//        }
-//    }
 
     // ─── Timer ─────────────────────────────────────────────────────────────────
 
@@ -253,7 +400,7 @@ class GiveAttendanceViewModel : ViewModel() {
                         )
                     }
                     _bleLatched = false   // session ended via expiry — reset latch
-                    bleJob?.cancel()   // ✅ stop the BLE scan right when the code expires
+                    bleJob?.cancel()     // stop BLE scan when code expires
                     break
                 }
                 _uiState.update { it.copy(timeLeftMillis = left) }
